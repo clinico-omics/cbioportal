@@ -1,9 +1,11 @@
 FROM tomcat:8-jre8
-MAINTAINER Alexandros Sigaras <als2076@med.cornell.edu>, Fedde Schaeffer <fedde@thehyve.nl>
-LABEL Description="cBioPortal for Cancer Genomics"
-ENV APP_NAME="cbioportal" \
+MAINTAINER Jingcheng Yang <yjcyxky@163.com>, Alexandros Sigaras <als2076@med.cornell.edu>, Fedde Schaeffer <fedde@thehyve.nl>
+LABEL Description="Choppy DataPortal for Cancer Genomics"
+ENV APP_NAME="cdataportal" \
     PORTAL_HOME="/cbioportal"
 #======== Install Prerequisites ===============#
+# Set aliyun source for apt-get
+COPY ./docker-compose/sources.list /etc/apt/sources.list
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git \
         libmysql-java \
@@ -19,10 +21,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 #======== Configure cBioPortal ===========================#
 COPY . $PORTAL_HOME
+# Get cdataporta-frontend.jar from private maven repo [https://repo.rdc.aliyun.com/repository/77439-release-qTdS0A].
 WORKDIR $PORTAL_HOME
 EXPOSE 8080
 #======== Build cBioPortal on Startup ===============#
-CMD mvn -DskipTests clean install \
-     && cp $PORTAL_HOME/portal/target/cbioportal*.war $CATALINA_HOME/webapps/cbioportal.war \
-     && find $PWD/core/src/main/scripts/ -type f -executable \! -name '*.pl'  -print0 | xargs -0 -- ln -st /usr/local/bin \
-     && sh $CATALINA_HOME/bin/catalina.sh run
+COPY $PWD/portal/target/cbioportal.war $CATALINA_HOME/webapps/cdataportal.war 
+RUN find $PWD/core/src/main/scripts/ -type f -executable \! -name '*.pl'  -print0 | xargs -0 -- ln -st /usr/local/bin
+
+CMD sh $CATALINA_HOME/bin/catalina.sh run

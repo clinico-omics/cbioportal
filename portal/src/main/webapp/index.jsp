@@ -15,7 +15,7 @@
     </c:if>
     
     <link rel="icon" href="/images/cbioportal_icon.png"/>
-    <title>cBioPortal for Cancer Genomics</title>
+    <title>ChoppyDataPortal for Cancer Genomics</title>
     
     <script>
         window.frontendConfig = {

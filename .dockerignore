@@ -1,0 +1,10 @@
+.git
+.github
+.project
+.pydevproject
+.classpath
+.DS_Store
+target
+docker
+docs
+*/target/*

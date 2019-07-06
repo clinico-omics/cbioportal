@@ -1,0 +1,33 @@
+version: "3.0"
+
+services:
+  cbioDB:
+    image: "mysql:5.7"
+    expose:
+      - "3306"
+    volumes:
+      - ./my.cnf:/etc/my.cnf
+      - ./data/mysql:/var/lib/mysql
+      - ./data/mysql-log:/var/log/mysql
+    environment:
+      - MYSQL_DATABASE=cbioportal
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=mysql_password
+      - MYSQL_ROOT_PASSWORD=mysql_root_password
+
+  cbioportal:
+    image: "registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:2.2.0"
+    expose:
+      - "8080"
+    volumes:
+      - ./portal.properties:/cbioportal/portal.properties:ro
+      - ./context.xml:/usr/local/tomcat/conf/context.xml:ro
+      - ./tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml:ro
+      - ./manager-context.xml:/usr/local/tomcat/webapps/host-manager/META-INF/context.xml:ro
+      - ./manager-context.xml:/usr/local/tomcat/webapps/manager/META-INF/context.xml:ro
+      - ./setenv.sh:/usr/local/tomcat/bin/setenv.sh:ro
+    ports:
+      - "80:8080"
+    links:
+      - cbioDB
+
