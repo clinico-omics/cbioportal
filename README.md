@@ -26,3 +26,9 @@ See: [https://docs.cbioportal.org](https://docs.cbioportal.org)
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 [![Docker Automated build](https://img.shields.io/docker/automated/jrottenberg/ffmpeg.svg)](https://hub.docker.com/r/cbioportal/cbioportal/) [![Docker Pulls](https://img.shields.io/docker/pulls/cbioportal/cbioportal.svg)](https://hub.docker.com/r/cbioportal/cbioportal/) [![Docker Stars](https://img.shields.io/docker/stars/cbioportal/cbioportal.svg)](https://hub.docker.com/r/cbioportal/cbioportal/)
+
+## Build
+```
+mvn clean -DskipTests install -Dfrontend.version=v3.0.4-tgmc -Dfrontend.groupId=com.github.clinico-omics
+docker build -t cdataportal:v3.0.4-tgmc .
+```

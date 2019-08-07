@@ -4,7 +4,3 @@
 .pydevproject
 .classpath
 .DS_Store
-target
-docker
-docs
-*/target/*
