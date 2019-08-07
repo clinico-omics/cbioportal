@@ -107,9 +107,15 @@
             <configuration>
               <artifactItems>
                 <artifactItem>
+<<<<<<< HEAD
                   <groupId>com.github.cbioportal</groupId>
                   <artifactId>cdataportal-frontend</artifactId>
                   <version>2.2.0</version>
+=======
+                  <groupId>${frontend.groupId}</groupId>
+                  <artifactId>cbioportal-frontend</artifactId>
+                  <version>${frontend.version}</version>
+>>>>>>> 072cefb9b4f20414dabc8872ef3cfcf840e0c1cd
                   <type>jar</type>
                   <outputDirectory>.</outputDirectory>
                   <excludes>*index*</excludes>

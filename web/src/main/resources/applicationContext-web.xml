@@ -67,6 +67,10 @@
     <mvc:interceptors>
         <bean id="involvedCancerStudyInterceptor" class="org.cbioportal.web.util.InvolvedCancerStudyExtractorInterceptor"/>
     </mvc:interceptors>
-    <bean class="com.fasterxml.jackson.databind.ObjectMapper"/>
+    <beans profile="ga-api-tracking-enabled">
+      <mvc:interceptors>
+        <bean id="googleAnalyticsInterceptor" class="org.cbioportal.web.util.GoogleAnalyticsInterceptor"/>
+      </mvc:interceptors>
+    </beans>
 
 </beans>

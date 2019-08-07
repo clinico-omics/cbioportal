@@ -1,9 +1,16 @@
+<<<<<<< HEAD
 .git
 .github
+=======
+>>>>>>> 072cefb9b4f20414dabc8872ef3cfcf840e0c1cd
 .project
 .pydevproject
 .classpath
 .DS_Store
+<<<<<<< HEAD
+=======
+.github
+>>>>>>> 072cefb9b4f20414dabc8872ef3cfcf840e0c1cd
 target
 docker
 docs
