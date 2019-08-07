@@ -107,9 +107,9 @@
             <configuration>
               <artifactItems>
                 <artifactItem>
-                  <groupId>com.github.cbioportal</groupId>
-                  <artifactId>cdataportal-frontend</artifactId>
-                  <version>2.2.0</version>
+                  <groupId>com.github.clinico-omics</groupId>
+                  <artifactId>cbioportal-frontend</artifactId>
+                  <version>v3.0.4-tgmc</version>
                   <type>jar</type>
                   <outputDirectory>.</outputDirectory>
                   <excludes>*index*</excludes>
