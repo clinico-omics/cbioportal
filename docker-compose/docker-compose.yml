@@ -12,14 +12,15 @@ services:
     environment:
       - MYSQL_DATABASE=cbioportal
       - MYSQL_USER=root
-      - MYSQL_PASSWORD=mysql_password
-      - MYSQL_ROOT_PASSWORD=mysql_root_password
+      - MYSQL_PASSWORD=please_modify_mysql_password
+      - MYSQL_ROOT_PASSWORD=please_modify_mysql_root_password
 
   cbioportal:
     image: "registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:2.2.0"
     expose:
       - "8080"
     volumes:
+      - ./ROOT:/usr/local/tomcat/webapps/ROOT:ro
       - ./portal.properties:/cbioportal/portal.properties:ro
       - ./context.xml:/usr/local/tomcat/conf/context.xml:ro
       - ./tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml:ro

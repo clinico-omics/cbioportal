@@ -32,3 +32,10 @@ See: [https://docs.cbioportal.org](https://docs.cbioportal.org)
 mvn clean -DskipTests install -Dfrontend.version=v3.0.4-tgmc -Dfrontend.groupId=com.github.clinico-omics
 docker build -t cdataportal:v3.0.4-tgmc .
 ```
+
+## Run in docker-compose mode
+1. Change some configure content that with please_modify_ prefix in docker-compose directory
+2. Run docker-compose
+```
+docker-compose up -d
+```

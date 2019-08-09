@@ -31,7 +31,7 @@
     <Resource name="jdbc/cbioportal" auth="Container"
     type="javax.sql.DataSource"
     maxActive="100" maxIdle="30" maxWait="10000"
-    username="root" password="tomcat_password"
+    username="root" password="please_modify_tomcat_password"
     driverClassName="com.mysql.jdbc.Driver"
     connectionProperties="zeroDateTimeBehavior=convertToNull;"
     testOnBorrow="true"

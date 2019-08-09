@@ -83,8 +83,14 @@
 
 <body>
     <div id="reactRoot"></div>
-    
-    
-    
+    <script>
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?aab9f43048b3553eabfd8eb96ec00360";
+          var s = document.getElementsByTagName("script")[0]; 
+          s.parentNode.insertBefore(hm, s);
+        })();
+    </script>        
 </body>
 </html>
