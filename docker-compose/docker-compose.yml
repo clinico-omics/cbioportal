@@ -10,13 +10,13 @@ services:
       - ./data/mysql:/var/lib/mysql
       - ./data/mysql-log:/var/log/mysql
     environment:
-      - MYSQL_DATABASE=cbioportal
-      - MYSQL_USER=root
-      - MYSQL_PASSWORD=please_modify_mysql_password
-      - MYSQL_ROOT_PASSWORD=please_modify_mysql_root_password
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 
   cbioportal:
-    image: "registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:2.2.0"
+    image: "${DATA_PORTAL_IMAGE}"
     expose:
       - "8080"
     volumes:

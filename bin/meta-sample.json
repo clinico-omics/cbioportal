@@ -1,0 +1,12 @@
+{
+    "TOMCAT_USERNAME": "tomcat",
+    "TOMCAT_PASSWORD": "please_modify_tomcat_password",
+    "MYSQL_DATABASE": "cbioportal",
+    "MYSQL_USER": "root",
+    "MYSQL_PASSWORD": "please_modify_mysql_root_password",
+    "MYSQL_ROOT_PASSWORD": "please_modify_mysql_root_password",
+    "DATA_PORTAL_IMAGE": "registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:2.2.0",
+    "MIRROR_USERNAME": "please_modify_mirror_username",
+    "MIRROR_PASSWORD": "please_modify_mirror_password",
+    "DATA_PORTAL_URL": "http://data.3steps.cn/cdataportal"
+}

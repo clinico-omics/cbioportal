@@ -103,3 +103,4 @@ pom.xml.*
 db-scripts/src/main/resources/cgds-test.sql
 pom.xml.*
 docker-compose/*.war
+meta.json

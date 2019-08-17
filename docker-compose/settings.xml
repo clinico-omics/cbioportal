@@ -14,13 +14,13 @@
     <servers>
         <server>
             <id>rdc-releases</id>
-            <username>lwGLXy</username>
-            <password>aRn3v2qidE</password>
+            <username>{{MIRROR_USERNAME}}</username>
+            <password>{{MIRROR_PASSWORD}}</password>
         </server>
         <server>
             <id>rdc-snapshots</id>
-            <username>lwGLXy</username>
-            <password>aRn3v2qidE</password>
+            <username>{{MIRROR_USERNAME}}</username>
+            <password>{{MIRROR_PASSWORD}}</password>
         </server>
     </servers>
     <profiles>

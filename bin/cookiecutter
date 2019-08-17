@@ -1,0 +1,82 @@
+#!/usr/bin/env python3
+
+import os
+import json
+import click
+from jinja2 import Environment, FileSystemLoader
+
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def list_templ_files(templ_dir):
+    all_files = []
+    for root, dirnames, filenames in os.walk(templ_dir):
+        if '.DS_Store' in filenames:
+            filenames.remove('.DS_Store')
+
+        if 'data' in dirnames:
+            dirnames.remove('data')
+
+        for filename in filenames:
+            all_files.append(os.path.join(root, filename))
+
+    return all_files
+
+
+def read_meta(meta_file):
+    with open(meta_file, 'r') as f:
+        meta = json.load(f)
+        return meta
+
+
+def cookiecutter(template_file_path, meta, output_file):
+    template_dir = os.path.dirname(template_file_path)
+    template_file = os.path.basename(template_file_path)
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template(template_file)
+    with open(output_file, 'w') as f:
+        f.write(template.render(**meta))
+
+
+def get_bin_dir():
+    return os.path.dirname(os.path.abspath(__file__ ))
+
+
+def gen_meta_fpath(meta_file_name):
+    return os.path.join(get_bin_dir(), meta_file_name)
+
+
+@click.command()
+@click.option('-t', '--templ-dir', prompt=True, help='Template files in the directory.')
+@click.option('-o', '--output-dir', prompt=True, help='Output directory.')
+@click.option('--meta-file', default=gen_meta_fpath('meta.json'),
+              help='The meta file path.')
+def output_docker_compose(templ_dir, output_dir, meta_file):
+    """Generate templates files for docker compose."""
+    output_dir = os.path.abspath(os.path.expanduser(output_dir))
+    meta = read_meta(meta_file)
+    templ_files = list_templ_files(templ_dir)
+
+    for file in templ_files:
+        output_file = os.path.join(output_dir, file.replace(templ_dir, '').strip('/'))
+        output_subdir = os.path.dirname(output_file)
+        if not os.path.exists(output_subdir):
+            os.makedirs(output_subdir)
+        cookiecutter(file, meta, output_file)
+
+    print("Generate template files successfully.")
+    print(bcolors.FAIL)
+    print("Please copy", os.path.join(templ_dir, "data"), "directory to the", output_dir, bcolors.ENDC)
+
+
+if __name__ == '__main__':
+    output_docker_compose()
