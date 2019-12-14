@@ -1,31 +1,33 @@
+# This is the web only image of cBioPortal. Useful when you would like to run a
+# small image without all data import/validate related scripts and
+# dependencies. It includes the ShenandoahGC
+# (https://wiki.openjdk.java.net/display/shenandoah/Main), an experimental
+# garbage collector which in our experience works better in a cloud environment
+# where you have multiple containers running on a single node. It gives unused
+# memory back to the system allowing other containers to utilize it. Enable
+# this GC with JAVA_OPTS=-XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC.
+#
+# Use from root directory of repo like:
+#
+# docker build -t cbioportal-container:web-shenandoah-tag-name .
+#
+# WARNING: the shendoah image is a nightly, untested, experimental build. If
+# you want to use an official openjdk image instead use the web-and-data image.
+#
+# WARNING: Be careful about publishing images generated like this publicly
+# because your .git folder is exposed in the build step. We are not sure if
+# this is a security risk: stackoverflow.com/questions/56278325
 FROM tomcat:8-jre8
 MAINTAINER Jingcheng Yang <yjcyxky@163.com>, Alexandros Sigaras <als2076@med.cornell.edu>, Fedde Schaeffer <fedde@thehyve.nl>
 LABEL Description="Choppy DataPortal for Cancer Genomics"
 ENV APP_NAME="cdataportal" \
     PORTAL_HOME="/cbioportal"
-#======== Install Prerequisites ===============#
-# Set aliyun source for apt-get
-COPY ./docker-compose/sources.list /etc/apt/sources.list
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        git \
-        libmysql-java \
-        patch \
-        python3 \
-        python3-jinja2 \
-        python3-mysqldb \
-        python3-requests \
-        maven \
-        openjdk-8-jdk \
-    && ln -s /usr/share/java/mysql-connector-java.jar "$CATALINA_HOME"/lib/ \
-    && rm -rf $CATALINA_HOME/webapps/examples \
-    && rm -rf /var/lib/apt/lists/*
+
 #======== Configure cBioPortal ===========================#
 COPY . $PORTAL_HOME
-# Get cdataporta-frontend.jar from private maven repo [https://repo.rdc.aliyun.com/repository/77439-release-qTdS0A].
 WORKDIR $PORTAL_HOME
 EXPOSE 8080
+
 #======== Build cBioPortal on Startup ===============#
 COPY $PWD/portal/target/cbioportal.war $CATALINA_HOME/webapps/cdataportal.war 
-RUN find $PORTAL_HOME/core/src/main/scripts/ -type f -executable \! -name '*.pl'  -print0 | xargs -0 -- ln -st /usr/local/bin
-
 CMD sh $CATALINA_HOME/bin/catalina.sh run

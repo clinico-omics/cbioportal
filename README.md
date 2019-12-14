@@ -36,6 +36,12 @@ docker tag cdataportal:v3.0.4-tgmc registry.cn-shanghai.aliyuncs.com/pgx-docker-
 docker push registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:v3.0.4-tgmc
 ```
 
+## Build Data Importer
+```
+# Change FROM cdataportal:v3.0.4-tgmc as build
+docker build -f docker/data-importer/Dockerfile -t cdataportal-importer:v3.0.4-tgmc .
+```
+
 ## Run in docker-compose mode
 1. Change some configure content that with please_modify_ prefix in docker-compose directory
 2. Run docker-compose

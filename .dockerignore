@@ -1,6 +1,7 @@
-# .git
+.git
 .github
 .project
 .pydevproject
 .classpath
 .DS_Store
+portal/target/portal
