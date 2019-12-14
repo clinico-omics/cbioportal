@@ -15,7 +15,7 @@
     </c:if>
     
     <link rel="icon" href="/images/cbioportal_icon.png"/>
-    <title>ChoppyDataPortal for Cancer Genomics</title>
+    <title>Fudan Data Portal for Cancer Genomics</title>
     
     <script>
         window.frontendConfig = {

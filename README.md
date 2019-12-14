@@ -29,8 +29,11 @@ See: [https://docs.cbioportal.org](https://docs.cbioportal.org)
 
 ## Build
 ```
+# Notice: You need to deploy cbioportal-front before you run the following code.
 mvn clean -DskipTests install -Dfrontend.version=v3.0.4-tgmc -Dfrontend.groupId=com.github.clinico-omics
 docker build -t cdataportal:v3.0.4-tgmc .
+docker tag cdataportal:v3.0.4-tgmc registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:v3.0.4-tgmc
+docker push registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:v3.0.4-tgmc
 ```
 
 ## Run in docker-compose mode
