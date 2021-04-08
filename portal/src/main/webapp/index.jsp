@@ -94,11 +94,7 @@
     </script>
     <script>
       window.addEventListener('message', (event) => {
-        let style = '.cbioportal-frontend .pageTopContainer { display: none !important; }'; 
-        var css = document.createElement('style'); 
-        css.type = 'text/css'; 
-        css.appendChild(document.createTextNode(style)); 
-        document.head.appendChild(css);
+        const data = event.data;
 
         function interceptClickEvent(e) {
             var target = e.target || e.srcElement;
@@ -114,14 +110,21 @@
                     console.log('interceptClickEvent(Set _blank): ', target)
                 }
             }
-        }
-        
-        
-        //listen for link click events at the document level
-        if (document.addEventListener) {
+        };
+
+        if (data.hideHeader) {
+          let style = '.cbioportal-frontend .pageTopContainer { display: none !important; }'; 
+          var css = document.createElement('style'); 
+          css.type = 'text/css'; 
+          css.appendChild(document.createTextNode(style)); 
+          document.head.appendChild(css);
+
+          //listen for link click events at the document level
+          if (document.addEventListener) {
             document.addEventListener('click', interceptClickEvent);
-        } else if (document.attachEvent) {
+          } else if (document.attachEvent) {
             document.attachEvent('onclick', interceptClickEvent);
+          }
         }
       });
     </script>        
