@@ -11,7 +11,7 @@
 # WARNING: Be careful about publishing images generated like this publicly
 # because your .git folder is exposed in the build step. We are not sure if
 # this is a security risk: stackoverflow.com/questions/56278325
-FROM cdataportal:v3.0.4-tgmc as build
+FROM registry.cn-shanghai.aliyuncs.com/pgx-docker-registry/cdataportal:v3.0.4-tgmc as build
 
 FROM tomcat:8-jre8
 MAINTAINER Jingcheng Yang <yjcyxky@163.com>, Alexandros Sigaras <als2076@med.cornell.edu>, Fedde Schaeffer <fedde@thehyve.nl>

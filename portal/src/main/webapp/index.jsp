@@ -91,6 +91,39 @@
           var s = document.getElementsByTagName("script")[0]; 
           s.parentNode.insertBefore(hm, s);
         })();
+    </script>
+    <script>
+      window.addEventListener('message', (event) => {
+        let style = '.cbioportal-frontend .pageTopContainer { display: none !important; }'; 
+        var css = document.createElement('style'); 
+        css.type = 'text/css'; 
+        css.appendChild(document.createTextNode(style)); 
+        document.head.appendChild(css);
+
+        function interceptClickEvent(e) {
+            var target = e.target || e.srcElement;
+            if (target.tagName === 'A') {
+                let url = new URL(target.getAttribute('href'));
+        
+                //put your logic here...
+                if (url.hostname == 'data.3steps.cn') {
+                    target.setAttribute('target', '_self');
+                    console.log('interceptClickEvent: ', target)
+                } else {
+                    target.setAttribute('target', '_blank')
+                    console.log('interceptClickEvent(Set _blank): ', target)
+                }
+            }
+        }
+        
+        
+        //listen for link click events at the document level
+        if (document.addEventListener) {
+            document.addEventListener('click', interceptClickEvent);
+        } else if (document.attachEvent) {
+            document.attachEvent('onclick', interceptClickEvent);
+        }
+      });
     </script>        
 </body>
 </html>
