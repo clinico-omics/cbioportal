@@ -1,10 +1,6 @@
 package org.cbioportal.web;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cbioportal.model.AlterationEnrichment;
 import org.cbioportal.model.CountSummary;
 import org.cbioportal.model.MolecularProfileCaseIdentifier;
@@ -28,7 +24,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
@@ -109,11 +111,11 @@ public class CopyNumberEnrichmentControllerTest {
         alterationEnrichment2.setCounts(Arrays.asList(alterationEnrichment2Set1Count,alterationEnrichment2Set2Count));
 
         alterationEnrichments.add(alterationEnrichment2);
-        
+
         Mockito.when(copyNumberEnrichmentService.getCopyNumberEnrichments(
-                Mockito.anyMap(),
-                Mockito.anyListOf(Integer.class),
-                Mockito.anyString()))
+            anyMap(),
+            any(),
+            any()))
         .thenReturn(alterationEnrichments);
 
         MolecularProfileCaseIdentifier entity1 = new MolecularProfileCaseIdentifier();
@@ -125,11 +127,11 @@ public class CopyNumberEnrichmentControllerTest {
         MolecularProfileCasesGroupFilter casesGroup1 = new MolecularProfileCasesGroupFilter();
         casesGroup1.setName("altered group");
         casesGroup1.setMolecularProfileCaseIdentifiers(Arrays.asList(entity1));
-        
+
         MolecularProfileCasesGroupFilter casesGroup2 = new MolecularProfileCasesGroupFilter();
         casesGroup2.setName("unaltered group");
         casesGroup2.setMolecularProfileCaseIdentifiers(Arrays.asList(entity2));
-        
+
         mockMvc.perform(MockMvcRequestBuilders.post(
             "/copy-number-enrichments/fetch")
             .accept(MediaType.APPLICATION_JSON)

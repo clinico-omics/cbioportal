@@ -8,6 +8,7 @@ import org.cbioportal.model.DiscreteCopyNumberData;
 import org.cbioportal.model.meta.BaseMeta;
 import org.cbioportal.service.DiscreteCopyNumberService;
 import org.cbioportal.service.exception.MolecularProfileNotFoundException;
+import org.cbioportal.web.config.PublicApiTags;
 import org.cbioportal.web.config.annotation.PublicApi;
 import org.cbioportal.web.parameter.CopyNumberCountIdentifier;
 import org.cbioportal.web.parameter.DiscreteCopyNumberEventType;
@@ -36,10 +37,8 @@ import java.util.List;
 @PublicApi
 @RestController
 @Validated
-@Api(tags = "L. Discrete Copy Number Alterations", description = " ")
+@Api(tags = PublicApiTags.DISCRETE_COPY_NUMBER_ALTERATIONS, description = " ")
 public class DiscreteCopyNumberController {
-
-    private static final int COPY_NUMBER_COUNT_MAX_PAGE_SIZE = 50000;
 
     @Autowired
     private DiscreteCopyNumberService discreteCopyNumberService;
@@ -66,8 +65,8 @@ public class DiscreteCopyNumberController {
             return new ResponseEntity<>(responseHeaders, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(
-                discreteCopyNumberService.getDiscreteCopyNumbersInMolecularProfileBySampleListId(molecularProfileId, 
-                    sampleListId, null, discreteCopyNumberEventType.getAlterationTypes(), projection.name()), 
+                discreteCopyNumberService.getDiscreteCopyNumbersInMolecularProfileBySampleListId(molecularProfileId,
+                    sampleListId, null, discreteCopyNumberEventType.getAlterationTypes(), projection.name()),
                 HttpStatus.OK);
         }
     }
@@ -94,11 +93,11 @@ public class DiscreteCopyNumberController {
 
             if (discreteCopyNumberFilter.getSampleListId() != null) {
                 baseMeta = discreteCopyNumberService.getMetaDiscreteCopyNumbersInMolecularProfileBySampleListId(
-                    molecularProfileId, discreteCopyNumberFilter.getSampleListId(), 
+                    molecularProfileId, discreteCopyNumberFilter.getSampleListId(),
                     discreteCopyNumberFilter.getEntrezGeneIds(), discreteCopyNumberEventType.getAlterationTypes());
             } else {
-                baseMeta = discreteCopyNumberService.fetchMetaDiscreteCopyNumbersInMolecularProfile(molecularProfileId, 
-                    discreteCopyNumberFilter.getSampleIds(), discreteCopyNumberFilter.getEntrezGeneIds(), 
+                baseMeta = discreteCopyNumberService.fetchMetaDiscreteCopyNumbersInMolecularProfile(molecularProfileId,
+                    discreteCopyNumberFilter.getSampleIds(), discreteCopyNumberFilter.getEntrezGeneIds(),
                     discreteCopyNumberEventType.getAlterationTypes());
             }
             responseHeaders.add(HeaderKeyConstants.TOTAL_COUNT, baseMeta.getTotalCount().toString());
@@ -107,43 +106,18 @@ public class DiscreteCopyNumberController {
             List<DiscreteCopyNumberData> discreteCopyNumberDataList;
             if (discreteCopyNumberFilter.getSampleListId() != null) {
                 discreteCopyNumberDataList = discreteCopyNumberService
-                    .getDiscreteCopyNumbersInMolecularProfileBySampleListId(molecularProfileId, 
-                        discreteCopyNumberFilter.getSampleListId(), discreteCopyNumberFilter.getEntrezGeneIds(), 
+                    .getDiscreteCopyNumbersInMolecularProfileBySampleListId(molecularProfileId,
+                        discreteCopyNumberFilter.getSampleListId(), discreteCopyNumberFilter.getEntrezGeneIds(),
                         discreteCopyNumberEventType.getAlterationTypes(), projection.name());
             } else {
                 discreteCopyNumberDataList = discreteCopyNumberService.fetchDiscreteCopyNumbersInMolecularProfile(
-                    molecularProfileId, discreteCopyNumberFilter.getSampleIds(), 
-                    discreteCopyNumberFilter.getEntrezGeneIds(), discreteCopyNumberEventType.getAlterationTypes(), 
+                    molecularProfileId, discreteCopyNumberFilter.getSampleIds(),
+                    discreteCopyNumberFilter.getEntrezGeneIds(), discreteCopyNumberEventType.getAlterationTypes(),
                     projection.name());
             }
-            
+
             return new ResponseEntity<>(discreteCopyNumberDataList, HttpStatus.OK);
         }
     }
 
-    @PreAuthorize("hasPermission(#molecularProfileId, 'MolecularProfileId', 'read')")
-    @RequestMapping(value = "/molecular-profiles/{molecularProfileId}/discrete-copy-number-counts/fetch",
-        method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation("Get counts of specific genes and alterations within a CNA molecular profile")
-    public ResponseEntity<List<CopyNumberCount>> fetchCopyNumberCounts(
-        @ApiParam(required = true, value = "Molecular Profile ID e.g. acc_tcga_gistic")
-        @PathVariable String molecularProfileId,
-        @ApiParam(required = true, value = "List of copy number count identifiers")
-        @Size(min = 1, max = COPY_NUMBER_COUNT_MAX_PAGE_SIZE)
-        @RequestBody List<CopyNumberCountIdentifier> copyNumberCountIdentifiers)
-        throws MolecularProfileNotFoundException {
-
-        List<Integer> entrezGeneIds = new ArrayList<>();
-        List<Integer> alterations = new ArrayList<>();
-
-        for (CopyNumberCountIdentifier copyNumberCountIdentifier : copyNumberCountIdentifiers) {
-
-            entrezGeneIds.add(copyNumberCountIdentifier.getEntrezGeneId());
-            alterations.add(copyNumberCountIdentifier.getAlteration());
-        }
-
-        return new ResponseEntity<>(discreteCopyNumberService.fetchCopyNumberCounts(molecularProfileId, entrezGeneIds,
-            alterations), HttpStatus.OK);
-    }
 }

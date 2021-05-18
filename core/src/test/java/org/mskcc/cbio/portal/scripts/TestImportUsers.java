@@ -39,10 +39,9 @@ import org.mskcc.cbio.portal.model.User;
 import org.mskcc.cbio.portal.dao.DaoUser;
 import org.mskcc.cbio.portal.model.UserAuthorities;
 import org.mskcc.cbio.portal.dao.DaoUserAuthorities;
-import org.mskcc.cbio.portal.scripts.ImportUsers;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.Assert.*;
@@ -52,11 +51,11 @@ import static org.junit.Assert.*;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/applicationContext-dao.xml" })
-@TransactionConfiguration(transactionManager = "transactionManager", defaultRollback = true)
+@Rollback
 @Transactional
 public class TestImportUsers {
-   
-	@Test
+
+   @Test
    public void testImportUsers() throws Exception{
 
       // TBD: change this to use getResourceAsStream()

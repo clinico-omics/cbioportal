@@ -7,6 +7,7 @@ import org.cbioportal.model.Patient;
 import org.cbioportal.service.exception.PatientNotFoundException;
 import org.cbioportal.service.exception.StudyNotFoundException;
 import org.cbioportal.service.PatientService;
+import org.cbioportal.web.config.PublicApiTags;
 import org.cbioportal.web.config.annotation.PublicApi;
 import org.cbioportal.web.parameter.*;
 import org.cbioportal.web.parameter.sort.PatientSortBy;
@@ -35,7 +36,7 @@ import java.util.*;
 @PublicApi
 @RestController
 @Validated
-@Api(tags = "C. Patients", description = " ")
+@Api(tags = PublicApiTags.PATIENTS, description = " ")
 public class PatientController {
 
     @Autowired
@@ -161,7 +162,7 @@ public class PatientController {
     }
 
     private void extractStudyAndPatientIds(PatientFilter patientFilter, List<String> studyIds, List<String> patientIds) {
-        
+
         for (PatientIdentifier patientIdentifier : patientFilter.getPatientIdentifiers()) {
             studyIds.add(patientIdentifier.getStudyId());
             patientIds.add(patientIdentifier.getPatientId());

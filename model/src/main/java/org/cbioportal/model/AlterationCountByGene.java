@@ -2,17 +2,17 @@ package org.cbioportal.model;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Set;
 
 public class AlterationCountByGene implements Serializable {
 
     private Integer entrezGeneId;
     private String hugoGeneSymbol;
     private Integer numberOfAlteredCases;
-	private Integer totalCount;
-	private Integer numberOfSamplesProfiled;
+    private Integer totalCount;
+    private Integer numberOfProfiledCases;
     private BigDecimal qValue;
-    private List<GenePanel> matchingGenePanels;
+    private Set<String> matchingGenePanelIds;
 
     public Integer getEntrezGeneId() {
         return entrezGeneId;
@@ -23,50 +23,50 @@ public class AlterationCountByGene implements Serializable {
     }
 
     public String getHugoGeneSymbol() {
-		return hugoGeneSymbol;
-	}
-
-	public void setHugoGeneSymbol(String hugoGeneSymbol) {
-		this.hugoGeneSymbol = hugoGeneSymbol;
-	}
-
-	public Integer getNumberOfAlteredCases() {
-		return numberOfAlteredCases;
-	}
-
-	public void setNumberOfAlteredCases(Integer numberOfAlteredCases) {
-		this.numberOfAlteredCases = numberOfAlteredCases;
-	}
-
-	public Integer getTotalCount() {
-		return totalCount;
-	}
-
-	public void setTotalCount(Integer totalCount) {
-		this.totalCount = totalCount;
-	}
-
-	public Integer getNumberOfSamplesProfiled() {
-		return numberOfSamplesProfiled;
-	}
-
-	public void setNumberOfSamplesProfiled(Integer numberOfSamplesProfiled) {
-		this.numberOfSamplesProfiled = numberOfSamplesProfiled;
-	}
-
-	public BigDecimal getqValue() {
-		return qValue;
-	}
-
-	public void setqValue(BigDecimal qValue) {
-		this.qValue = qValue;
-    }	
-    
-    public List<GenePanel> getMatchingGenePanels() {
-        return matchingGenePanels;
+        return hugoGeneSymbol;
     }
 
-    public void setMatchingGenePanels(List<GenePanel> matchingGenePanels) {
-        this.matchingGenePanels = matchingGenePanels;
+    public void setHugoGeneSymbol(String hugoGeneSymbol) {
+        this.hugoGeneSymbol = hugoGeneSymbol;
+    }
+
+    public Integer getNumberOfAlteredCases() {
+        return numberOfAlteredCases;
+    }
+
+    public void setNumberOfAlteredCases(Integer numberOfAlteredCases) {
+        this.numberOfAlteredCases = numberOfAlteredCases;
+    }
+
+    public Integer getTotalCount() {
+        return totalCount;
+    }
+
+    public void setTotalCount(Integer totalCount) {
+        this.totalCount = totalCount;
+    }
+    
+    public Integer getNumberOfProfiledCases() {
+        return numberOfProfiledCases;
+    }
+
+    public void setNumberOfProfiledCases(Integer numberOfProfiledCases) {
+        this.numberOfProfiledCases = numberOfProfiledCases;
+    }
+
+    public BigDecimal getqValue() {
+        return qValue;
+    }
+
+    public void setqValue(BigDecimal qValue) {
+        this.qValue = qValue;
+    }
+
+    public Set<String> getMatchingGenePanelIds() {
+        return matchingGenePanelIds;
+    }
+
+    public void setMatchingGenePanelIds(Set<String> matchingGenePanelIds) {
+        this.matchingGenePanelIds = matchingGenePanelIds;
     }
 }

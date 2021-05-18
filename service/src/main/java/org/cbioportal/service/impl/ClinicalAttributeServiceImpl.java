@@ -33,7 +33,7 @@ public class ClinicalAttributeServiceImpl implements ClinicalAttributeService {
         
         List<ClinicalAttribute> clinicalAttributes = clinicalAttributeRepository.getAllClinicalAttributes(projection, pageSize, pageNumber, sortBy,
                                                                                                           direction);
-        // copy the list before returning so @PostFilter doesn't taint the list stored in the mybatis second-level cache
+        // copy the list before returning so @PostFilter doesn't taint the list stored in the persistence layer cache
         return (AUTHENTICATE.equals("false")) ? clinicalAttributes : new ArrayList<ClinicalAttribute>(clinicalAttributes);
     }
 
@@ -100,5 +100,13 @@ public class ClinicalAttributeServiceImpl implements ClinicalAttributeService {
     public List<ClinicalAttributeCount> getClinicalAttributeCountsBySampleListId(String sampleListId) {
 
         return clinicalAttributeRepository.getClinicalAttributeCountsBySampleListId(sampleListId);
+    }
+
+    @Override
+    public List<ClinicalAttribute> getClinicalAttributesByStudyIdsAndAttributeIds(List<String> studyIds,
+            List<String> attributeIds) {
+
+        return clinicalAttributeRepository
+                .getClinicalAttributesByStudyIdsAndAttributeIds(studyIds, attributeIds);
     }
 }

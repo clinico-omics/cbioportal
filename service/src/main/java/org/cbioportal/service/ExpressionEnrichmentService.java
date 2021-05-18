@@ -1,13 +1,22 @@
 package org.cbioportal.service;
 
-import org.cbioportal.model.ExpressionEnrichment;
+import java.util.List;
+import java.util.Map;
+
+import org.cbioportal.model.EnrichmentType;
+import org.cbioportal.model.GenericAssayEnrichment;
+import org.cbioportal.model.GenomicEnrichment;
+import org.cbioportal.model.MolecularProfileCaseIdentifier;
 import org.cbioportal.service.exception.MolecularProfileNotFoundException;
 
-import java.util.List;
-
 public interface ExpressionEnrichmentService {
-    
-    List<ExpressionEnrichment> getExpressionEnrichments(String molecularProfileId, List<String> alteredSampleIds, 
-                                                        List<String> unalteredSampleIds, String enrichmentType) 
-        throws MolecularProfileNotFoundException;
+
+    List<GenomicEnrichment> getGenomicEnrichments(String molecularProfileId,
+            Map<String, List<MolecularProfileCaseIdentifier>> molecularProfileCaseSets, EnrichmentType enrichmentType)
+            throws MolecularProfileNotFoundException;
+
+    List<GenericAssayEnrichment> getGenericAssayEnrichments(String molecularProfileId,
+            Map<String, List<MolecularProfileCaseIdentifier>> molecularProfileCaseSets, EnrichmentType enrichmentType)
+            throws MolecularProfileNotFoundException;
+
 }

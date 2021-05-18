@@ -35,7 +35,7 @@ public class SampleListServiceImpl implements SampleListService {
         
         List<SampleList> sampleListsFromRepo = sampleListRepository.getAllSampleLists(projection, pageSize, pageNumber, sortBy,
                                                                                       direction);
-        // copy the list before returning so @PostFilter doesn't taint the list stored in the mybatis second-level cache
+        // copy the list before returning so @PostFilter doesn't taint the list stored in the persistence layer cache
         List<SampleList> sampleLists = (AUTHENTICATE.equals("false")) ? sampleListsFromRepo : new ArrayList<SampleList>(sampleListsFromRepo);
         
         if(projection.equals("DETAILED")) {
@@ -75,7 +75,7 @@ public class SampleListServiceImpl implements SampleListService {
         
         studyService.getStudy(studyId);
 
-        List<SampleList> sampleLists = sampleListRepository.getAllSampleListsInStudy(studyId, projection, pageSize, 
+        List<SampleList> sampleLists = sampleListRepository.getAllSampleListsInStudies(Arrays.asList(studyId), projection, pageSize, 
             pageNumber, sortBy, direction);
 
         if(projection.equals("DETAILED")) {
@@ -127,5 +127,19 @@ public class SampleListServiceImpl implements SampleListService {
 
         sampleLists.forEach(s -> s.setSampleIds(sampleListToSampleIds.stream().filter(p -> p.getSampleListId()
         .equals(s.getListId())).map(SampleListToSampleId::getSampleId).collect(Collectors.toList())));
+    }
+
+    @Override
+    public List<SampleList> getAllSampleListsInStudies(List<String> studyIds, String projection) {
+
+        List<SampleList> sampleLists = sampleListRepository.getAllSampleListsInStudies(studyIds, projection, null, null,
+                null, null);
+
+        if (projection.equals("DETAILED")) {
+            addSampleIds(sampleLists);
+            addSampleCounts(sampleLists);
+        }
+
+        return sampleLists;
     }
 }

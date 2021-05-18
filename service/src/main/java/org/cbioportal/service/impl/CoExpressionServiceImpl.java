@@ -1,45 +1,21 @@
 package org.cbioportal.service.impl;
 
-import org.apache.commons.lang.math.NumberUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.stat.correlation.SpearmansCorrelation;
-import org.cbioportal.model.Gene;
-import org.cbioportal.model.MolecularAlteration;
-import org.cbioportal.model.GeneMolecularAlteration;
-import org.cbioportal.model.GenesetMolecularAlteration;
-import org.cbioportal.model.Geneset;
-import org.cbioportal.model.MolecularData;
-import org.cbioportal.model.MolecularProfile;
-import org.cbioportal.model.Sample;
-import org.cbioportal.model.CoExpression.GeneticEntityType;
+import org.cbioportal.model.*;
 import org.cbioportal.persistence.MolecularDataRepository;
 import org.cbioportal.persistence.SampleListRepository;
-import org.cbioportal.model.CoExpression;
-import org.cbioportal.service.GeneService;
-import org.cbioportal.service.GenesetDataService;
-import org.cbioportal.service.GenesetService;
-import org.cbioportal.service.MolecularDataService;
-import org.cbioportal.service.MolecularProfileService;
-import org.cbioportal.service.SampleService;
-import org.cbioportal.service.exception.GeneNotFoundException;
-import org.cbioportal.service.exception.GenesetNotFoundException;
-import org.cbioportal.service.exception.MolecularProfileNotFoundException;
-import org.cbioportal.service.exception.SampleListNotFoundException;
-import org.cbioportal.service.CoExpressionService;
+import org.cbioportal.service.*;
+import org.cbioportal.service.exception.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,10 +24,6 @@ public class CoExpressionServiceImpl implements CoExpressionService {
 
     @Autowired
     private MolecularDataService molecularDataService;
-    @Autowired
-    private GeneService geneService;
-    @Autowired
-    private GenesetService genesetService;
     @Autowired
     private GenesetDataService genesetDataService;
     @Autowired
@@ -66,11 +38,11 @@ public class CoExpressionServiceImpl implements CoExpressionService {
     @Override
     // transaction needs to be setup here in order to return Iterable from molecularDataService in fetchCoExpressions
     @Transactional(readOnly=true)
-    public List<CoExpression> getCoExpressions(String geneticEntityId, CoExpression.GeneticEntityType geneticEntityType,
+    public List<CoExpression> getCoExpressions(String geneticEntityId, EntityType geneticEntityType,
             String sampleListId, String molecularProfileIdA, String molecularProfileIdB, Double threshold)
             throws MolecularProfileNotFoundException, SampleListNotFoundException, GenesetNotFoundException,
             GeneNotFoundException {
-        
+
         if (molecularProfileIdA.equals(molecularProfileIdB)) {
             return getCoExpressions(molecularProfileIdA, sampleListId, geneticEntityId, geneticEntityType, threshold);
         }
@@ -78,10 +50,10 @@ public class CoExpressionServiceImpl implements CoExpressionService {
         List<CoExpression> computedCoExpressions = null;
         List<? extends MolecularData> molecularDataListA = null;
         List<? extends MolecularData> molecularDataListB = null;
-        if (geneticEntityType.equals(GeneticEntityType.GENE)) {
+        if (geneticEntityType.equals(EntityType.GENE)) {
             molecularDataListA = molecularDataService.getMolecularData(molecularProfileIdA, sampleListId, null,
                     "SUMMARY");
-        } else if (geneticEntityType.equals(GeneticEntityType.GENESET)) {
+        } else if (geneticEntityType.equals(EntityType.GENESET)) {
             molecularDataListA = genesetDataService.fetchGenesetData(molecularProfileIdA, sampleListId, null);
         }
         MolecularProfile molecularProfileB = molecularProfileService.getMolecularProfile(molecularProfileIdB);
@@ -105,13 +77,13 @@ public class CoExpressionServiceImpl implements CoExpressionService {
                 .filter(p -> sharedSamples.contains(p.getSampleId())).collect(Collectors.toList());
 
         computedCoExpressions = computeCoExpressionsFromMolecularData(finalmolecularDataListB, isMolecularProfileBOfGenesetType,
-                finalmolecularDataListA, geneticEntityId, threshold);
+                finalmolecularDataListA, geneticEntityId, threshold, molecularProfileIdB);
         return computedCoExpressions;
     }
 
     @Override
     public List<CoExpression> getCoExpressions(String molecularProfileId, String sampleListId, String geneticEntityId,
-                                               CoExpression.GeneticEntityType geneticEntityType, Double threshold)
+                                               EntityType geneticEntityType, Double threshold)
         throws MolecularProfileNotFoundException, GenesetNotFoundException, GeneNotFoundException {
 
         List<String> sampleIds = sampleListRepository.getAllSampleIdsInSampleList(sampleListId);
@@ -124,7 +96,7 @@ public class CoExpressionServiceImpl implements CoExpressionService {
 
     @Override
     public List<CoExpression> fetchCoExpressions(String molecularProfileId, List<String> sampleIds, 
-                                                 String queryGeneticEntityId, CoExpression.GeneticEntityType geneticEntityType, 
+                                                 String queryGeneticEntityId, EntityType geneticEntityType, 
                                                  Double threshold)
         throws MolecularProfileNotFoundException, GenesetNotFoundException, GeneNotFoundException {
 
@@ -133,10 +105,10 @@ public class CoExpressionServiceImpl implements CoExpressionService {
         // for the remaining genes/geneset in the profile.
         MolecularAlteration queryMolecularDataList = null;
         Iterable<? extends MolecularAlteration> maItr = null;
-        if (geneticEntityType.equals(GeneticEntityType.GENE)) {
+        if (geneticEntityType.equals(EntityType.GENE)) {
             List<Integer> queryGeneticEntityIds = Arrays.asList(Integer.valueOf(queryGeneticEntityId));
             maItr = molecularDataService.getMolecularAlterations(molecularProfileId, queryGeneticEntityIds, "SUMMARY");
-        } else if (geneticEntityType.equals(GeneticEntityType.GENESET)) {
+        } else if (geneticEntityType.equals(EntityType.GENESET)) {
             List<String> queryGeneticEntityIds = Arrays.asList(queryGeneticEntityId);
             maItr = genesetDataService.getGenesetAlterations(molecularProfileId, queryGeneticEntityIds);
         }
@@ -152,9 +124,9 @@ public class CoExpressionServiceImpl implements CoExpressionService {
         // of the genetic_alteration table is a comma separated list of scalar values.
         // Each value in this list is associated with a sample at the same position found in
         // the genetic_profile_samples.ORDERED_SAMPLE_LIST column.
-        String commaSeparatedSampleIdsOfMolecularProfile = molecularDataRepository
+        MolecularProfileSamples commaSeparatedSampleIdsOfMolecularProfile = molecularDataRepository
             .getCommaSeparatedSampleIdsOfMolecularProfile(molecularProfileId);
-        List<Integer> internalSampleIds = Arrays.stream(commaSeparatedSampleIdsOfMolecularProfile.split(","))
+        List<Integer> internalSampleIds = Arrays.stream(commaSeparatedSampleIdsOfMolecularProfile.getSplitSampleIds())
             .mapToInt(Integer::parseInt).boxed().collect(Collectors.toList());
         Map<Integer, Integer> internalSampleIdToIndexMap = new HashMap<>();
         for (int lc = 0; lc < internalSampleIds.size(); lc++) {
@@ -194,9 +166,9 @@ public class CoExpressionServiceImpl implements CoExpressionService {
             .collect(Collectors.toList());
 
         // Get an iterator to all the MolecularAlteration (genetic_alteration table records) in the profile
-        if (geneticEntityType.equals(GeneticEntityType.GENE)) {
+        if (geneticEntityType.equals(EntityType.GENE)) {
             maItr = molecularDataService.getMolecularAlterations(molecularProfileId, null, "SUMMARY");
-        } else if (geneticEntityType.equals(GeneticEntityType.GENESET)) {
+        } else if (geneticEntityType.equals(EntityType.GENESET)) {
             maItr = genesetDataService.getGenesetAlterations(molecularProfileId, null);
         }
 
@@ -212,12 +184,11 @@ public class CoExpressionServiceImpl implements CoExpressionService {
             }
             List<String> internalValues = new ArrayList<>(Arrays.asList(ma.getSplitValues()));
             List<String> values = includedIndexes.stream().map(index -> internalValues.get(index)).collect(Collectors.toList());
-            CoExpression ce = computeCoExpressions(entityId, values, includedQueryValues, isMolecularProfileBOfGenesetType, threshold);
+            CoExpression ce = computeCoExpressions(entityId, values, includedQueryValues, isMolecularProfileBOfGenesetType, threshold, molecularProfileId);
             if (ce != null) {
                 toReturn.add(ce);
             }
         }
-
         return toReturn;
     }
 
@@ -225,8 +196,8 @@ public class CoExpressionServiceImpl implements CoExpressionService {
     // transaction needs to be setup here in order to return Iterable from molecularDataService in fetchCoExpressions
     @Transactional(readOnly=true)
     public List<CoExpression> fetchCoExpressions(String geneticEntityId,
-            CoExpression.GeneticEntityType geneticEntityType, List<String> sampleIds, String molecularProfileIdB,
-            String molecularProfileIdA, Double threshold) throws MolecularProfileNotFoundException, GenesetNotFoundException, GeneNotFoundException {
+            EntityType geneticEntityType, List<String> sampleIds, String molecularProfileIdA,
+            String molecularProfileIdB, Double threshold) throws MolecularProfileNotFoundException, GenesetNotFoundException, GeneNotFoundException {
 
         if (molecularProfileIdA.equals(molecularProfileIdB)) {
             return fetchCoExpressions(molecularProfileIdA, sampleIds, geneticEntityId, geneticEntityType, threshold);
@@ -235,11 +206,11 @@ public class CoExpressionServiceImpl implements CoExpressionService {
         List<CoExpression> computedCoExpressions = null;
         List<? extends MolecularData> molecularDataListA = null;
         List<? extends MolecularData> molecularDataListB = null;
-        if (geneticEntityType.equals(GeneticEntityType.GENE)) {
+        if (geneticEntityType.equals(EntityType.GENE)) {
             molecularDataListA = molecularDataService.fetchMolecularData(molecularProfileIdA, sampleIds, null,
                     "SUMMARY");
-        } else if (geneticEntityType.equals(GeneticEntityType.GENESET)) {
-            molecularDataListA = genesetDataService.fetchGenesetData(molecularProfileIdB, sampleIds, null);
+        } else if (geneticEntityType.equals(EntityType.GENESET)) {
+            molecularDataListA = genesetDataService.fetchGenesetData(molecularProfileIdA, sampleIds, null);
         }
         MolecularProfile molecularProfileB = molecularProfileService.getMolecularProfile(molecularProfileIdB);
         Boolean isMolecularProfileBOfGenesetType = molecularProfileB.getMolecularAlterationType()
@@ -254,13 +225,13 @@ public class CoExpressionServiceImpl implements CoExpressionService {
                     .collect(Collectors.toList());
         }
         computedCoExpressions = computeCoExpressionsFromMolecularData(molecularDataListB, isMolecularProfileBOfGenesetType,
-                molecularDataListA, geneticEntityId, threshold);
+                molecularDataListA, geneticEntityId, threshold, molecularProfileIdB);
         return computedCoExpressions;
     }
 
     private List<CoExpression> computeCoExpressionsFromMolecularData(List<? extends MolecularData> molecularDataListB,
             Boolean isMolecularProfileBOfGenesetType, List<? extends MolecularData> molecularDataListA,
-            String queryGeneticEntityId, Double threshold) throws GenesetNotFoundException, GeneNotFoundException {
+            String queryGeneticEntityId, Double threshold, String molecularProfileId) throws GenesetNotFoundException, GeneNotFoundException {
 
         Map<String , List<MolecularData>> molecularDataMapA = molecularDataListA.stream()
             .collect(Collectors.groupingBy(MolecularData::getStableId));
@@ -280,11 +251,22 @@ public class CoExpressionServiceImpl implements CoExpressionService {
         }
 
         List<CoExpression> coExpressionList = new ArrayList<>();
-        List<String> valuesB = finalMolecularDataListA.stream().map(g -> g.getValue()).collect(Collectors.toList());
-        for (String entityId : molecularDataMapB.keySet()) {
-            List<String> internalValues = molecularDataMapB.get(entityId).stream().map(g -> g.getValue())
-                .collect(Collectors.toList());
-            CoExpression co = computeCoExpressions(entityId, internalValues, valuesB, isMolecularProfileBOfGenesetType, threshold);
+
+        Map<String, ? extends MolecularData> dataMapA = finalMolecularDataListA.stream()
+                .collect(Collectors.toMap(MolecularData::getSampleId, Function.identity()));
+
+        for (Entry<String, List<MolecularData>> entry : molecularDataMapB.entrySet()) {
+            List<String> valuesA = new ArrayList<>();
+            List<String> valuesB = new ArrayList<>();
+
+            entry.getValue().stream().forEach(molecularData -> {
+                if (dataMapA.containsKey(molecularData.getSampleId())) {
+                    valuesA.add(molecularData.getValue());
+                    valuesB.add(dataMapA.get(molecularData.getSampleId()).getValue());
+                }
+            });
+
+            CoExpression co = computeCoExpressions(entry.getKey(), valuesA, valuesB, isMolecularProfileBOfGenesetType, threshold, molecularProfileId);
             if (co != null) {
                 coExpressionList.add(co);
             }
@@ -295,7 +277,7 @@ public class CoExpressionServiceImpl implements CoExpressionService {
     }
 
     private CoExpression computeCoExpressions(String entityId, List<String> valuesA, List<String> valuesB, 
-            Boolean isMolecularProfileBOfGenesetType, Double threshold) throws GenesetNotFoundException, GeneNotFoundException {
+            Boolean isMolecularProfileBOfGenesetType, Double threshold, String molecularProfileId) throws GenesetNotFoundException, GeneNotFoundException {
 
         List<String> valuesACopy = new ArrayList<>(valuesA);
         List<String> valuesBCopy = new ArrayList<>(valuesB);
@@ -315,15 +297,6 @@ public class CoExpressionServiceImpl implements CoExpressionService {
 
         CoExpression coExpression = new CoExpression();
         coExpression.setGeneticEntityId(entityId);
-        if (isMolecularProfileBOfGenesetType) {
-            Geneset geneset = genesetService.getGeneset(entityId);
-            coExpression.setCytoband("-");
-            coExpression.setGeneticEntityName(geneset.getName());
-        } else {
-            Gene gene = geneService.getGene(entityId);
-            coExpression.setCytoband(gene.getCytoband());
-            coExpression.setGeneticEntityName(gene.getHugoGeneSymbol());
-        }
 
         double[] valuesBNumber = valuesBCopy.stream().mapToDouble(Double::parseDouble).toArray();
         double[] valuesANumber = valuesACopy.stream().mapToDouble(Double::parseDouble).toArray();

@@ -35,7 +35,7 @@ package org.mskcc.cbio.portal.scripts;
 import java.io.*;
 import java.util.*;
 import java.util.regex.*;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.mskcc.cbio.portal.dao.*;
 import org.mskcc.cbio.portal.model.*;
@@ -162,7 +162,7 @@ public class ImportProteinArrayData {
                             StringUtils.join(genes, "/"), residue, null);
             daoPAI.addProteinArrayInfo(pai);
             for (String symbol : genes) {
-                CanonicalGene gene = daoGene.getNonAmbiguousGene(symbol, null);
+                CanonicalGene gene = daoGene.getNonAmbiguousGene(symbol, true);
                 if (gene==null) {
                     System.err.println(symbol+" not exist");
                     continue;

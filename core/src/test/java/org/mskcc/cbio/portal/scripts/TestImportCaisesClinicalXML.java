@@ -45,9 +45,9 @@ import org.mskcc.cbio.portal.model.CancerStudy;
 import org.mskcc.cbio.portal.model.Patient;
 import org.mskcc.cbio.portal.model.Sample;
 import org.mskcc.cbio.portal.model.TypeOfCancer;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -56,7 +56,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/applicationContext-dao.xml" })
-@TransactionConfiguration(transactionManager = "transactionManager", defaultRollback = true)
+@Rollback
 @Transactional
 public class TestImportCaisesClinicalXML {
     
@@ -69,6 +69,7 @@ public class TestImportCaisesClinicalXML {
         DaoTypeOfCancer.addTypeOfCancer(typeOfCancer);
 
         CancerStudy cancerStudy = new CancerStudy("prad","prad","prad","prad",true);
+        cancerStudy.setReferenceGenome("hg19");
         DaoCancerStudy.addCancerStudy(cancerStudy);
         
         int studyId = DaoCancerStudy.getCancerStudyByStableId("prad").getInternalId();

@@ -95,11 +95,11 @@ public class StudyControllerTest {
 
     @Test
     public void getAllStudiesDefaultProjection() throws Exception {
-        
+
         List<CancerStudy> cancerStudyList = createExampleStudies();
 
-        Mockito.when(studyService.getAllStudies(Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt(),
-                Mockito.anyString(), Mockito.anyString())).thenReturn(cancerStudyList);
+        Mockito.when(studyService.getAllStudies(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(),
+                Mockito.any(), Mockito.any())).thenReturn(cancerStudyList);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/studies")
                 .accept(MediaType.APPLICATION_JSON))
@@ -141,7 +141,7 @@ public class StudyControllerTest {
         BaseMeta baseMeta = new BaseMeta();
         baseMeta.setTotalCount(2);
 
-        Mockito.when(studyService.getMetaStudies(Mockito.anyString())).thenReturn(baseMeta);
+        Mockito.when(studyService.getMetaStudies(Mockito.any())).thenReturn(baseMeta);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/studies")
                 .param("projection", "META"))
@@ -222,13 +222,13 @@ public class StudyControllerTest {
 
         List<CancerStudy> cancerStudyList = createExampleStudies();
 
-        Mockito.when(studyService.fetchStudies(Mockito.anyListOf(String.class), Mockito.anyString()))
+        Mockito.when(studyService.fetchStudies(Mockito.anyList(), Mockito.anyString()))
             .thenReturn(cancerStudyList);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/studies/fetch")
             .accept(MediaType.APPLICATION_JSON)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(Arrays.asList(TEST_CANCER_STUDY_IDENTIFIER_1, 
+            .content(objectMapper.writeValueAsString(Arrays.asList(TEST_CANCER_STUDY_IDENTIFIER_1,
                 TEST_CANCER_STUDY_IDENTIFIER_2))))
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -275,11 +275,11 @@ public class StudyControllerTest {
                 .andExpect(MockMvcResultMatchers.content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.content().string(TEST_TAGS_1));
     }
-    
+
     @Test
     public void getEmptyTags() throws Exception {
 
-    	Mockito.when(studyService.getTags(Mockito.anyString())).thenReturn(null);
+        Mockito.when(studyService.getTags(Mockito.anyString())).thenReturn(null);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/studies/test_study_id/tags")
                 .accept(MediaType.APPLICATION_JSON))
@@ -302,12 +302,12 @@ public class StudyControllerTest {
         cancerStudyTags2.setTags(TEST_TAGS_3);
         cancerStudyTagsList.add(cancerStudyTags2);
 
-        Mockito.when(studyService.getTagsForMultipleStudies(Mockito.anyListOf(String.class))).thenReturn(cancerStudyTagsList);
+        Mockito.when(studyService.getTagsForMultipleStudies(Mockito.anyList())).thenReturn(cancerStudyTagsList);
 
         mockMvc.perform(MockMvcRequestBuilders.post("/studies/tags/fetch")
             .accept(MediaType.APPLICATION_JSON)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(Arrays.asList(TEST_CANCER_STUDY_IDENTIFIER_1, 
+            .content(objectMapper.writeValueAsString(Arrays.asList(TEST_CANCER_STUDY_IDENTIFIER_1,
                 TEST_CANCER_STUDY_IDENTIFIER_2))))
             .andExpect(MockMvcResultMatchers.status().isOk())
             .andExpect(MockMvcResultMatchers.content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -356,5 +356,5 @@ public class StudyControllerTest {
         cancerStudyList.add(cancerStudy2);
         return cancerStudyList;
     }
-    
+
 }

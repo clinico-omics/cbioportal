@@ -7,6 +7,7 @@ version 3, or (at your option) any later version.
 """
 
 import unittest
+from unittest.mock import Mock
 import sys
 import logging.handlers
 import textwrap
@@ -43,7 +44,7 @@ def setUpModule():
     mutation_sample_ids = ["TCGA-A1-A0SB-01", "TCGA-A1-A0SD-01"]
     logger = logging.getLogger(__name__)
     # parse mock API results from a local directory
-    PORTAL_INSTANCE = validateData.load_portal_info('test_data/api_json_unit_tests/',
+    PORTAL_INSTANCE = validateData.load_portal_info('test_data/api_json_unit_tests',
                                                     logger,
                                                     offline=True)
 
@@ -112,13 +113,18 @@ class DataFileTestCase(LogBufferTestCase):
     particular validator class and collect the log records emitted.
     """
 
-    def validate(self, data_filename, validator_class, extra_meta_fields=None, relaxed_mode=False, strict_maf_checks=False):
+    def validate(self, data_filename, validator_class,
+                 extra_meta_fields=None,
+                 relaxed_mode=False, strict_maf_checks=False,
+                 *, portal_instance=None):
         """Validate a file with a Validator and return the log records."""
+        if portal_instance is None:
+            portal_instance = PORTAL_INSTANCE
         meta_dict = {'data_filename': data_filename}
         if extra_meta_fields is not None:
             meta_dict.update(extra_meta_fields)
         validator = validator_class('test_data', meta_dict,
-                                    PORTAL_INSTANCE,
+                                    portal_instance,
                                     self.logger, relaxed_mode,
                                     strict_maf_checks)
         validator.validate()
@@ -208,6 +214,29 @@ class ColumnOrderTestCase(DataFileTestCase):
         # again, we expect no errors or warnings
         self.assertEqual(0, len(record_list))
 
+class UniqueColumnTestCase(PostClinicalDataFileTestCase):
+
+    # create dummy class from  FeaturewiseFileValidator
+    # set the `name` column to be validated for uniqueness
+    class DummyFeaturewiseFileValidator(validateData.FeaturewiseFileValidator):
+        REQUIRED_HEADERS = ['id']
+        OPTIONAL_HEADERS = ['name']
+        def parseFeatureColumns(self, nonsample_col_vals):
+            return
+        def checkValue(self, value, column_index):
+            return 
+
+    def test_uniquecolumns_are_accepted(self):
+        self.logger.setLevel(logging.ERROR)
+        UniqueColumnTestCase.DummyFeaturewiseFileValidator.UNIQUE_COLUMNS = ['id']
+        record_list = self.validate('data_unique_column_test.txt', UniqueColumnTestCase.DummyFeaturewiseFileValidator)
+        self.assertEqual(len(record_list), 0)
+
+    def test_uniquecolumns_(self):
+        self.logger.setLevel(logging.ERROR)
+        UniqueColumnTestCase.DummyFeaturewiseFileValidator.UNIQUE_COLUMNS = ['name']
+        record_list = self.validate('data_unique_column_test.txt', UniqueColumnTestCase.DummyFeaturewiseFileValidator)
+        self.assertEqual(len(record_list), 1)
 
 class ClinicalColumnDefsTestCase(PostClinicalDataFileTestCase):
 
@@ -373,33 +402,39 @@ class PatientAttrFileTestCase(PostClinicalDataFileTestCase):
         self.logger.setLevel(logging.WARNING)
         record_list = self.validate('data_clin_hardcoded_attr_vals.txt',
                                     validateData.PatientClinicalValidator)
-        self.assertEqual(len(record_list), 5)
+        self.assertEqual(len(record_list), 6)
         record_iterator = iter(record_list)
-        # OS_STATUS not in controlled vocabulary
+        # OS_STATUS not 0:LIVING
         record = next(record_iterator)
         self.assertEqual(record.levelno, logging.ERROR)
         self.assertEqual(record.line_number, 6)
         self.assertEqual(record.column_number, 3)
-        self.assertEqual(record.cause, 'ALIVE')
+        self.assertEqual(record.cause, '0:ALIVE')
         # DFS_STATUS having an OS_STATUS value
+        record = next(record_iterator)	
+        self.assertEqual(record.levelno, logging.ERROR)	
+        self.assertEqual(record.line_number, 7)	
+        self.assertEqual(record.column_number, 5)	
+        self.assertEqual(record.cause, '0:LIVING')
+        # PFS_STATUS not start with 0 / 1
         record = next(record_iterator)
         self.assertEqual(record.levelno, logging.ERROR)
-        self.assertEqual(record.line_number, 7)
-        self.assertEqual(record.column_number, 5)
-        self.assertEqual(record.cause, 'LIVING')
-        # wrong casing for OS_STATUS
+        self.assertEqual(record.line_number, 8)
+        self.assertEqual(record.column_number, 7)
+        self.assertEqual(record.cause, 'PROGRESSION')
+        # wrong casing for OS_STATUS	
         record = next(record_iterator)
         self.assertEqual(record.levelno, logging.ERROR)
         self.assertEqual(record.line_number, 9)
         self.assertEqual(record.column_number, 3)
-        self.assertEqual(record.cause, 'living')
-        # DFS_STATUS not in controlled vocabulary (wrong casing)
+        self.assertEqual(record.cause, '0:living')
+        # DFS_STATUS not 1:Recurred/Progressed
         record = next(record_iterator)
         self.assertEqual(record.levelno, logging.ERROR)
         self.assertEqual(record.line_number, 11)
         self.assertEqual(record.column_number, 5)
-        self.assertEqual(record.cause, 'recurred/progressed')
-        # unspecified OS_MONTHS while OS_STATUS is DECEASED
+        self.assertEqual(record.cause, '1:recurred/progressed')
+        # unspecified OS_MONTHS while OS_STATUS is 1:DECEASED
         record = next(record_iterator)
         self.assertEqual(record.levelno, logging.WARNING)
         self.assertEqual(record.line_number, 13)
@@ -443,6 +478,25 @@ class PatientAttrFileTestCase(PostClinicalDataFileTestCase):
         self.assertIn('Date found when no date was expected', record.getMessage())
 
 
+class TimelineValuesDataValidationTest(DataFileTestCase):
+    
+    """Test values specific to timeline files are appropriately validated."""
+    
+    def test_start_date_validation_TimelineValidator(self):
+        """timeline validator requires START_DATE in timeline values to
+           have a non-'NA' value.
+        """
+        
+        # set level according to this test case:
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_timeline_invalid_start_date.txt',
+                                     validateData.TimelineValidator)
+        self.assertEqual(len(record_list), 2)
+        for error in record_list:
+            self.assertEqual("ERROR", error.levelname)
+            self.assertIn("Invalid START_DATE", error.getMessage())
+
+        
 # TODO: make tests in this testcase check the number of properly defined types
 class CancerTypeFileValidationTestCase(DataFileTestCase):
 
@@ -616,12 +670,12 @@ class GeneIdColumnsTestCase(PostClinicalDataFileTestCase):
                                     validateData.CNADiscreteValidator,
                                     extra_meta_fields={'meta_file_type': 'CNA_DISCRETE'})
         # expecting two error messages:
-        self.assertEqual(len(record_list), 2)
+        self.assertEqual(len(record_list), 0)
         for record in record_list:
-            self.assertEqual(record.levelno, logging.ERROR)
+            self.assertEqual(record.levelno, logging.WARNING)
         # expecting these to be the cause:
-        self.assertEqual(record_list[0].cause, '1-ACAP3')
-        self.assertEqual(record_list[1].cause, '9-SEP')
+        #self.assertEqual(record_list[0].cause, '1-ACAP3')
+        #self.assertEqual(record_list[1].cause, '9-SEP')
 
     def test_both_name_and_entrez_but_invalid_entrez(self):
         """Test when a file has both the Hugo name and Entrez ID columns, but entrez is invalid."""
@@ -756,7 +810,13 @@ class FeatureWiseValuesTestCase(PostClinicalDataFileTestCase):
             self.assertLessEqual(record.levelno, logging.INFO)
 
     def test_repeated_gene(self):
-        """Test if a warning is issued and the line is skipped if duplicate."""
+        """Test if a warning is issued and the line is skipped if duplicate.
+
+        In the test data, the Entrez ID in line 6 is removed. Therefore the gene symbol and gene alias table will be
+        used to look up this gene in the database. ENTB5 is an alias for Entrez 116983 (ACAP3). This gene was defined
+        earlier in the file, so the CENTB5 entry will be skipped. There are invalid values in this row, but because the
+        entry is skipped, the values should not be validated."""
+
         self.logger.setLevel(logging.WARNING)
         record_list = self.validate('data_cna_duplicate_gene.txt',
                                     validateData.CNADiscreteValidator)
@@ -878,7 +938,6 @@ class FeatureWiseValuesTestCase(PostClinicalDataFileTestCase):
         self.assertEqual(record.line_number, 2)
         self.assertEqual(record.column_number, 5)
         self.assertEqual(record.cause, '1.5')
-        return
         record = next(record_iterator)
         self.assertEqual(record.line_number, 5)
         self.assertEqual(record.column_number, 2)
@@ -937,7 +996,6 @@ class FeatureWiseValuesTestCase(PostClinicalDataFileTestCase):
         self.assertIn('column', record.getMessage().lower())
         return
 
-
     def test_missing_row_gsva(self):
         #Test if an error is issued if the score and pvalue table does not have same rownames
         self.logger.setLevel(logging.ERROR)
@@ -952,25 +1010,27 @@ class FeatureWiseValuesTestCase(PostClinicalDataFileTestCase):
         self.assertEqual(len(record_list2), 1)
         for record in record_list2:
             self.assertEqual(record.levelno, logging.ERROR)
-        self.assertEqual('Gene sets column in score and p-value file are not equal', record.getMessage())
+        self.assertEqual("Gene sets column in score and p-value file are not equal. The same set of gene sets should be used in the score and p-value files for this study. Please ensure that all gene set id's of one file are present in the other gene set data file.", record.getMessage())
         return
+        
+class MultipleDataFileValidatorTestCase(unittest.TestCase):
 
-    def test_geneset_not_in_database(self):
-        """Test if an error is issued if the score and pvalue table does not have same rownames"""
+    def feature_id_is_accepted(self):
+        mockval = Mock()
+        validateData.MultipleDataFileValidator.parseFeatureColumns(mockval, ["id-without_whitespace"])
+        mockval.logger.error.assert_not_called()
+        mockval.logger.warning.assert_not_called()
 
-        self.logger.setLevel(logging.ERROR)
-        record_list = self.validate('data_gsva_scores_geneset_not_in_database.txt',
-                                    validateData.GsvaScoreValidator)
-        self.assertEqual(len(record_list), 1)
-        record_iterator = iter(record_list)
-        record = next(record_iterator)
-        self.assertEqual(record.line_number, 3)
-        self.assertIn(record.cause, 'HYVE_TEST_GENE_SET')
-        self.assertEqual('Gene set not found in database, please make sure to import gene sets prior to study loading',
-                         record.getMessage())
-        return
+    def test_illegal_character_in_feature_id_issues_error(self):
+        mockval = Mock()
+        validateData.MultipleDataFileValidator.parseFeatureColumns(mockval, ["id with whitespace"])
+        mockval.logger.error.assert_called()
 
-    # TODO: test other subclasses of FeatureWiseValidator
+    def test_comma_in_feature_id_issues_error(self):
+        mockval = Mock()
+        validateData.MultipleDataFileValidator.parseFeatureColumns(mockval, ["id,with-comma"])
+        mockval.logger.error.assert_called()
+
 
 class ContinuousValuesTestCase(PostClinicalDataFileTestCase):
 
@@ -1304,6 +1364,22 @@ class MutationsSpecialCasesTestCase(PostClinicalDataFileTestCase):
         self.assertIn('HGVSp_Short', record.getMessage())
         self.assertEqual(record.line_number, 8)
 
+    def throw_error_if_hgvsp_short_is_too_long(self):
+        """Test that an error is thrown if HGVSp_Short value is too long."""
+        # set level according to this test case:
+        self.logger.setLevel(logging.WARNING)
+        record_list = self.validate(
+                'mutations/data_mutations_too_long_hgvsp_short.maf',
+                validateData.MutationsExtendedValidator,
+                extra_meta_fields={'swissprot_identifier': 'accession'})
+        self.assertEqual(len(record_list), 1)
+        record_iterator = iter(record_list)
+        # expect an error for the second entry, first one should not throw any message
+        record = next(record_iterator)
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('HGVSp_Short', record.getMessage())
+        self.assertEqual(record.line_number, 2)
+
     def test_isValidVariantClassification(self):
         """Test if proper warnings/errors are given for wrong/blank Variant_Classification change vals."""
         # set level according to this test case:
@@ -1440,22 +1516,14 @@ class MutationsSpecialCasesTestCase(PostClinicalDataFileTestCase):
                                     extra_meta_fields={
                                             'swissprot_identifier': 'name'})
         # we expect 5 ERRORs :
-        self.assertEqual(len(record_list), 5)
+        self.assertEqual(len(record_list), 3)
         
         # First 2 ERRORs should be something like: "Column X found without any X column"
-        self.assertIn("found without any", record_list[0].getMessage().lower())
+        self.assertIn("Column cbp_driver_annotation found without any cbp_driver column.", record_list[0].getMessage())
         self.assertEqual(record_list[0].levelno, logging.ERROR)
-        self.assertIn("found without any", record_list[1].getMessage().lower())
+        self.assertIn("Column cbp_driver_tiers_annotation found without any cbp_driver_tiers column.", record_list[1].getMessage())
         self.assertEqual(record_list[1].levelno, logging.ERROR)
-        
-        # Last 3 ERRORs should be something like: "This line has no value for X and a value for Y. Please, fill the Z column."
-        self.assertIn("please, fill the", record_list[2].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
-        self.assertIn("please, fill the", record_list[3].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
-        self.assertIn("please, fill the", record_list[4].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
-    
+
     def test_absence_custom_annotation_columns_when_custom_values_columns(self):
         """Test that the validator raises an error when the 
         cbp_driver and the cbp_driver_tiers columns are present 
@@ -1469,21 +1537,13 @@ class MutationsSpecialCasesTestCase(PostClinicalDataFileTestCase):
                                     extra_meta_fields={
                                             'swissprot_identifier': 'name'})
         # we expect 5 ERRORs :
-        self.assertEqual(len(record_list), 5)
+        self.assertEqual(len(record_list), 3)
         
         # First 2 ERRORs should be something like: "Column X found without any Y column"
-        self.assertIn("found without any", record_list[0].getMessage().lower())
+        self.assertIn('Column cbp_driver found without any cbp_driver_annotation column.', record_list[0].getMessage())
         self.assertEqual(record_list[0].levelno, logging.ERROR)
-        self.assertIn("found without any", record_list[1].getMessage().lower())
+        self.assertIn('Column cbp_driver_tiers found without any cbp_driver_tiers_annotation column.', record_list[1].getMessage())
         self.assertEqual(record_list[1].levelno, logging.ERROR)
-        
-        # Last 3 ERRORs should be something like: "This line has no value for X and a value for Y. Please, fill the annotation column."
-        self.assertIn("please, fill the annotation column", record_list[2].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
-        self.assertIn("please, fill the annotation column", record_list[3].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
-        self.assertIn("please, fill the annotation column", record_list[4].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
         
     def test_empty_custom_annotation_fields(self):
         """Test that the validator raises errors when one multiclass
@@ -1497,15 +1557,11 @@ class MutationsSpecialCasesTestCase(PostClinicalDataFileTestCase):
                                     validateData.MutationsExtendedValidator,
                                     extra_meta_fields={
                                             'swissprot_identifier': 'name'})
-        # we expect 2 ERRORs :
-        self.assertEqual(len(record_list), 2)
-        
-        # 2 ERRORs should be something like: "This line has no value for X and a value for Y. Please, fill the Z column."
-        self.assertIn("please, fill the", record_list[0].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
-        self.assertIn("please, fill the", record_list[1].getMessage().lower())
-        self.assertEqual(record_list[0].levelno, logging.ERROR)
-    
+        self.assertEqual(len(record_list), 1)
+        record = record_list[0]
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('This line has no value for cbp_driver_tiers and a value for cbp_driver_tiers_annotation. Please, fill the cbp_driver_tiers column.', record.getMessage())
+
     def test_warning_more_than_10_types_in_driver_class(self):
         """Test that the validator raises a warning when the column
         cbp_driver_tiers contains more than 10 types.
@@ -1518,7 +1574,7 @@ class MutationsSpecialCasesTestCase(PostClinicalDataFileTestCase):
                                             'swissprot_identifier': 'name'})
         # we expect 3 WARNINGs :
         self.assertEqual(len(record_list), 3)
-        
+
         # WARNINGs should be something like: "cbp_driver_tiers contains more than 10 different values"
         self.assertIn("cbp_driver_tiers contains more than 10 different tiers.", record_list[0].getMessage().lower())
         self.assertEqual(record_list[0].levelno, logging.WARNING)
@@ -1681,6 +1737,111 @@ class FusionValidationTestCase(PostClinicalDataFileTestCase):
         self.assertEqual(len(record_list), 1)
         self.assertIn("duplicate entry in fusion data", record_list[0].getMessage().lower())
 
+
+class StructuralVariantValidationTestCase(PostClinicalDataFileTestCase):
+    """Tests for the various validations of data in structural variant data files."""
+
+    def test_missing_columns(self):
+        """Test whether the exons are found in the transcript"""
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_structural_variants_missing_columns.txt',
+                                    validateData.StructuralVariantValidator)
+        self.assertEqual(3, len(record_list))
+        record_iterator = iter(record_list)
+
+        # Expected ERROR message due to missing Ensembl transcript column
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual(1, record.line_number)
+        self.assertEqual('Fusion event requires "Site1_Exon" and "Site2_Exon" columns', record.message)
+
+        # Expected ERROR message due to missing Exon column
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual(1, record.line_number)
+        self.assertEqual('Fusion event requires "Site1_Ensembl_Transcript_Id" and "Site2_Ensembl_Transcript_Id" '
+                         'columns', record.message)
+
+        # Expected generic ERROR message due to invalid column header
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual('Invalid column header, file cannot be parsed', record.message)
+
+    def test_missing_values(self):
+        """Test whether the exons are found in the transcript"""
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_structural_variants_missing_values.txt',
+                                    validateData.StructuralVariantValidator)
+        self.assertEqual(4, len(record_list))
+        record_iterator = iter(record_list)
+
+        # Expected ERROR message due to missing Ensembl transcript column
+        record = next(record_iterator)
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertEqual(2, record.line_number)
+        self.assertEqual(11, record.column_number)
+        self.assertIn("No Ensembl transcript ID found.", record.message)
+
+        # Expected ERROR message due to missing Exon column
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual(3, record.line_number)
+        self.assertEqual(4, record.column_number)
+        self.assertIn("No Ensembl transcript ID found.", record.message)
+
+        # Expected ERROR message due to missing Ensembl transcript column
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual(6, record.line_number)
+        self.assertEqual(5, record.column_number)
+        self.assertIn("No exon found.", record.message)
+
+        # Expected ERROR message due to missing Exon column
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual(8, record.line_number)
+        self.assertEqual(12, record.column_number)
+        self.assertIn("No exon found.", record.message)
+
+    def test_transcript_not_in_genome_nexus(self):
+        """Test whether the transcripts are validated correctly by checking Genome Nexus"""
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_structural_variants_transcript_not_in_genome_nexus.txt',
+                                    validateData.StructuralVariantValidator)
+
+        self.assertEqual(1, len(record_list))
+        record_iterator = iter(record_list)
+
+        # Expected ERROR message due to value "1500" in Site1_Exon in line 2
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual("TEST_TRANSCRIPT", record.cause)
+        self.assertIn("Ensembl transcript not found in Genome Nexus.", record.getMessage())
+
+    def test_exon_not_in_transcript(self):
+        """Test whether the exons are found in the transcript"""
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_structural_variants_exon_not_in_transcript.txt',
+                                    validateData.StructuralVariantValidator)
+
+        self.assertEqual(len(record_list), 2)
+        record_iterator = iter(record_list)
+
+        # Expected ERROR message due to value "1500" in Site1_Exon in line 2
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual(2, record.line_number)
+        self.assertEqual("1500 not in ENST00000242365", record.cause)
+        self.assertIn("Exon is not found in rank of transcript", record.getMessage())
+
+        # Expected ERROR message due to value "2000" in Site2_Exon in line 4
+        record = next(record_iterator)
+        self.assertEqual(logging.ERROR, record.levelno)
+        self.assertEqual(4, record.line_number)
+        self.assertEqual("2000 not in ENST00000389048", record.cause)
+        self.assertIn("Exon is not found in rank of transcript", record.getMessage())
+
+
 class SegFileValidationTestCase(PostClinicalDataFileTestCase):
 
     """Tests for the various validations of data in segment CNA data files."""
@@ -1824,7 +1985,7 @@ class GisticGenesValidationTestCase(PostClinicalDataFileTestCase):
                     'genetic_alteration_type': 'GISTIC_GENES_AMP',
                     'reference_genome_id': 'hg19'})
         # expecting only status messages about the file being validated
-        self.assertEqual(len(record_list), 3)
+        self.assertEqual(len(record_list), 4)
         for record in record_list:
             self.assertLessEqual(record.levelno, logging.INFO)
 
@@ -1838,7 +1999,7 @@ class GisticGenesValidationTestCase(PostClinicalDataFileTestCase):
                     'genetic_alteration_type': 'GISTIC_GENES_DEL',
                     'reference_genome_id': 'hg19'})
         # expecting only status messages about the file being validated
-        self.assertEqual(len(record_list), 3)
+        self.assertEqual(len(record_list), 4)
         for record in record_list:
             self.assertLessEqual(record.levelno, logging.INFO)
 
@@ -2251,8 +2412,8 @@ class MetaFilesTestCase(LogBufferTestCase):
             PORTAL_INSTANCE,
             self.logger, False, False)
         record_list = self.get_log_records()
-        # expecting 1 warning, 1 error:
-        self.assertEqual(len(record_list), 3)
+        # expecting 1 warning, 3 errors:
+        self.assertEqual(len(record_list), 4)
         # get both into a variable to avoid dependency on order:
         errors = []
         for record in record_list:
@@ -2262,9 +2423,10 @@ class MetaFilesTestCase(LogBufferTestCase):
                 warning = record
 
         # expecting one error about wrong stable_id in meta_expression:
-        self.assertEqual(len(errors), 2)
+        self.assertEqual(len(errors), 3)
         self.assertIn('mrna_test', errors)
         self.assertIn('gistic', errors)
+        self.assertIn('treatment ic50', errors)
 
         # expecting one warning about stable_id not being recognized in _samples
         self.assertEqual(warning.levelno, logging.WARNING)
@@ -2306,6 +2468,21 @@ class MetaFilesTestCase(LogBufferTestCase):
         self.assertEqual('The PMID field in meta_study should not contain any embedded whitespace', record.getMessage())
         self.assertEqual('29625048, 29596782, 29622463A, 29617662 29625055, 29625050', record.cause)
 
+    def test_show_profile_setting_for_cna(self):
+        """Test the `show_profile_in_analysis_tab: false` setting for continuous CNA data"""
+        self.logger.setLevel(logging.ERROR)
+        validateData.process_metadata_files(
+            'test_data/meta_study/invalid_show_profile_setting_cna',
+            PORTAL_INSTANCE,
+            self.logger, False, False)
+        record_list = self.get_log_records()
+        # expecting 1 error:
+        self.assertEqual(len(record_list), 1)
+        
+        # Should raise an error when show_profile_in_analysis_tab is not false for non-discrete CNA metafile
+        record = record_list.pop()
+        self.assertEqual("The 'show_profile_in_analysis_tab' setting must be 'false', as this is only applicable for CNA data of the DISCRETE type.", record.getMessage())
+                
 class HeaderlessClinicalDataValidationTest(PostClinicalDataFileTestCase):
 
     """Tests for validation of clinical data files without metadata headers.
@@ -2363,7 +2540,6 @@ class HeaderlessClinicalDataValidationTest(PostClinicalDataFileTestCase):
         self.assertEqual(final_record.levelno, logging.ERROR)
         self.assertIn('cannot be parsed', final_record.getMessage().lower())
 
-
 class DataFileIOTestCase(PostClinicalDataFileTestCase):
     """Test if the right behavior occurs if study files cannot be read."""
 
@@ -2377,6 +2553,313 @@ class DataFileIOTestCase(PostClinicalDataFileTestCase):
         self.assertEqual(record.levelno, logging.ERROR)
         self.assertIn('file', record.getMessage().lower())
 
+def _resetMultipleFileHandlerClassVars():
+    """Reset the state of classes that check mulitple files of the same type.
+    
+    GsvaWiseFileValidator classes check 
+    consistency between multiple data files by collecting information in class variables.
+    This implementation is not consistent with the unit test environment that simulates
+    different studies to be loaded. To ensure real-world fucntionality the class variables 
+    should be reset before each unit test that tests multi file consistency."""
+
+    for c in [ validateData.GsvaWiseFileValidator ]:
+        c.prior_validated_sample_ids = None
+        c.prior_validated_feature_ids = None
+        c.prior_validated_header = None
+
+# --------------------------- resources wise test ------------------------------
+
+class ResourceDefinitionWiseTestCase(PostClinicalDataFileTestCase):
+
+    def test_resource_definition_missing_resourceId(self):
+
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_definition_missing_resourceId.txt',
+                            validateData.ResourceDefinitionValidator)
+
+        self.assertEqual(len(record_list), 1)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Missing RESOURCE_ID', record.getMessage())
+
+class ResourceWiseTestCase(PostClinicalDataFileTestCase):
+    def test_resource_is_not_url(self):
+        # set RESOURCE_DEFINITION_DICTIONARY (which should be initialized before validate resource data)
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {'PATHOLOGY_SLIDE': ['SAMPLE']}
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_is_not_url.txt',
+                            validateData.ResourceValidator)
+
+        self.assertEqual(len(record_list), 1)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('not an url', record.getMessage())
+        # reset RESOURCE_DEFINITION_DICTIONARY
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {}
+
+    # sample resources tests
+    def test_sample_resource_should_have_definition(self):
+        # reset RESOURCE_DEFINITION_DICTIONARY
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {}
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_sample_valid.txt',
+                            validateData.SampleResourceValidator)
+
+        self.assertEqual(len(record_list), 6)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('sample resource is not defined correctly', record.getMessage())
+
+    def test_sample_resource_has_definition_in_different_type(self):
+        # set RESOURCE_DEFINITION_DICTIONARY (which should be initialized before validate resource data)
+        # PATHOLOGY_SLIDE is duplicated in SAMPLE and PATIENT
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {'PATHOLOGY_SLIDE': ['SAMPLE', 'PATIENT']}
+        self.logger.setLevel(logging.WARNING)
+        record_list = self.validate('data_resource_sample_valid.txt',
+                            validateData.SampleResourceValidator)
+
+        self.assertEqual(len(record_list), 3)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.WARNING)
+        self.assertIn('sample resource has been used by more than one RESOURCE_TYPE', record.getMessage())
+
+    def test_sample_resource_has_duplication(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_sample_duplicate.txt',
+                            validateData.SampleResourceValidator)
+
+        self.assertEqual(len(record_list), 1)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Duplicated resources found', record.getMessage())
+
+    # patient resources tests
+    def test_patient_resource_should_have_definition(self):
+        # reset global variables
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {}
+        validateData.RESOURCE_PATIENTS_WITH_SAMPLES = set(["TCGA-A2-A04P", "TCGA-A1-A0SK", "TCGA-A2-A0CM"])
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_patient_valid.txt',
+                            validateData.PatientResourceValidator)
+
+        self.assertEqual(len(record_list), 6)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('patient resource is not defined correctly', record.getMessage())
+
+        # reset global variables
+        validateData.RESOURCE_PATIENTS_WITH_SAMPLES = None
+
+    def test_patient_resource_has_definition_in_different_type(self):
+        # set RESOURCE_DEFINITION_DICTIONARY (which should be initialized before validate resource data)
+        # PATHOLOGY_SLIDE is duplicated in SAMPLE and PATIENT
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {'PATIENT_NOTES': ['SAMPLE', 'PATIENT']}
+        validateData.RESOURCE_PATIENTS_WITH_SAMPLES = set(["TCGA-A2-A04P", "TCGA-A1-A0SK", "TCGA-A2-A0CM"])
+        self.logger.setLevel(logging.WARNING)
+        record_list = self.validate('data_resource_patient_valid.txt',
+                            validateData.PatientResourceValidator)
+
+        self.assertEqual(len(record_list), 3)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.WARNING)
+        self.assertIn('patient resource has been used by more than one RESOURCE_TYPE', record.getMessage())
+
+        # reset global variables
+        validateData.RESOURCE_PATIENTS_WITH_SAMPLES = None
+
+    def test_patient_resource_has_duplication(self):
+        validateData.RESOURCE_PATIENTS_WITH_SAMPLES = set(["TCGA-A2-A04P", "TCGA-A1-A0SK", "TCGA-A2-A0CM"])
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_patient_duplicate.txt',
+                            validateData.PatientResourceValidator)
+
+        self.assertEqual(len(record_list), 1)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Duplicated resources found', record.getMessage())
+
+        # reset global variables
+        validateData.RESOURCE_PATIENTS_WITH_SAMPLES = None
+
+    # study resources tests
+    def test_study_resource_should_have_definition(self):
+        # reset global variables
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {}
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_study_valid.txt',
+                            validateData.StudyResourceValidator)
+
+        self.assertEqual(len(record_list), 4)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('study resource is not defined correctly', record.getMessage())
+
+    def test_study_resource_has_definition_in_different_type(self):
+        # set RESOURCE_DEFINITION_DICTIONARY (which should be initialized before validate resource data)
+        # PATHOLOGY_SLIDE is duplicated in SAMPLE and STUDY
+        validateData.RESOURCE_DEFINITION_DICTIONARY = {'STUDY_SPONSORS': ['STUDY', 'SAMPLE']}
+        self.logger.setLevel(logging.WARNING)
+        record_list = self.validate('data_resource_study_valid.txt',
+                            validateData.StudyResourceValidator)
+
+        self.assertEqual(len(record_list), 2)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.WARNING)
+        self.assertIn('study resource has been used by more than one RESOURCE_TYPE', record.getMessage())
+
+    def test_study_resource_has_duplication(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_resource_study_duplicate.txt',
+                            validateData.StudyResourceValidator)
+
+        self.assertEqual(len(record_list), 1)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Duplicated resources found', record.getMessage())
+# -------------------------- end resource definition wise test ----------------------------
+
+# --------------------------- generic assay test ------------------------------
+class GenericAssayWiseTestCase(PostClinicalDataFileTestCase):
+    def test_generic_assay_missing_entity_id_column(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_generic_assay_without_entity_id_column.txt',
+                            validateData.GenericAssayWiseFileValidator,
+                            extra_meta_fields={
+                                'generic_entity_meta_properties': 'name,description,url'})
+
+        self.assertEqual(len(record_list), 2)
+        record_iterator = iter(record_list)
+        # Invalid column header
+        record = next(record_iterator)
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Missing column: ENTITY_STABLE_ID', record.getMessage())
+        # Missing column: ENTITY_STABLE_ID
+        record = next(record_iterator)
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Invalid column header', record.getMessage())
+
+class GenericAssayContinuousTestCase(PostClinicalDataFileTestCase):
+    def test_generic_assay_with_valid_continuous_data(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_generic_assay_valid_continuous.txt',
+                            validateData.GenericAssayContinuousValidator,
+                            extra_meta_fields={
+                                'generic_entity_meta_properties': 'name,description,url'})
+
+        self.assertEqual(len(record_list), 0)
+
+    def test_generic_assay_with_non_numerical_data(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_generic_assay_with_non_numerical_data.txt',
+                            validateData.GenericAssayContinuousValidator,
+                            extra_meta_fields={
+                                'generic_entity_meta_properties': 'name,description,url'})
+
+        self.assertEqual(len(record_list), 1)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn(record.cause, 'NON_NUMERIC')
+
+class GenericAssayCategoricalTestCase(PostClinicalDataFileTestCase):
+    def test_generic_assay_with_valid_categorical_data(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_generic_assay_valid_categorical.txt',
+                            validateData.GenericAssayCategoricalValidator,
+                            extra_meta_fields={
+                                'generic_entity_meta_properties': 'name,description,url'})
+
+        self.assertEqual(len(record_list), 0)
+
+    def test_generic_assay_with_enpty_cell_data(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_generic_assay_empty_cell.txt',
+                            validateData.GenericAssayCategoricalValidator,
+                            extra_meta_fields={
+                                'generic_entity_meta_properties': 'name,description,url'})
+
+        self.assertEqual(len(record_list), 2)
+        record_iterator = iter(record_list)
+        record = next(record_iterator)
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Blank cell found in column', record.getMessage())
+        record = next(record_iterator)
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Cell is empty. A categorical value is expected.', record.getMessage())
+
+class GenericAssayBinaryTestCase(PostClinicalDataFileTestCase):
+    def test_generic_assay_with_with_valid_binary_data(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_generic_assay_valid_binary.txt',
+                            validateData.GenericAssayBinaryValidator,
+                            extra_meta_fields={
+                                'generic_entity_meta_properties': 'name,description,url'})
+
+        self.assertEqual(len(record_list), 0)
+
+    def test_generic_assay_with_not_defined_data(self):
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_generic_assay_with_not_defined_data.txt',
+                            validateData.GenericAssayBinaryValidator,
+                            extra_meta_fields={
+                                'generic_entity_meta_properties': 'name,description,url'})
+
+        self.assertEqual(len(record_list), 1)
+        record = record_list.pop()
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn(record.cause, 'NOT_DEFINED')
+# -------------------------- end generic assay test ----------------------------
+
+class CNADiscretePDAAnnotationsValidatorTestCase(PostClinicalDataFileTestCase):
+
+    def test_required_gene_columns(self):
+
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_pd_annotation_missing_col_gene_ids.txt',
+                                    validateData.CNADiscretePDAAnnotationsValidator)
+
+        self.assertEqual(len(record_list), 2)
+        record = record_list[0]
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Hugo_Symbol or Entrez_Gene_Id column needs to be present in the file.', record.getMessage())
+
+    def test_required_sample_columns(self):
+
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_pd_annotation_missing_col_sampleid.txt',
+                                    validateData.CNADiscretePDAAnnotationsValidator)
+
+        self.assertEqual(len(record_list), 2)
+        record = record_list[0]
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Missing column: SAMPLE_ID', record.getMessage())
+
+    def test_required_driver_columns(self):
+
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_pd_annotation_missing_col_driver.txt',
+                                    validateData.CNADiscretePDAAnnotationsValidator)
+
+        self.assertEqual(len(record_list), 2)
+        record = record_list[0]
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('Column cbp_driver_annotation found without any cbp_driver column.', record.getMessage())
+
+    def test_required_field_permutations(self):
+
+        self.logger.setLevel(logging.ERROR)
+        record_list = self.validate('data_pd_annotation_missing_fields.txt',
+                                    validateData.CNADiscretePDAAnnotationsValidator)
+
+        self.assertEqual(len(record_list), 3)
+        record = record_list[0]
+        self.assertIn('Only "Putative_Passenger", "Putative_Driver", "NA", "Unknown" and "" (empty) are allowed.', record.getMessage())
+        self.assertEqual(record.levelno, logging.ERROR)
+        record = record_list[1]
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('No Entrez gene id or gene symbol provided for gene.', record.getMessage())
+        record = record_list[2]
+        self.assertEqual(record.levelno, logging.ERROR)
+        self.assertIn('This line has no value for cbp_driver_tiers and a value for cbp_driver_tiers_annotation. Please, fill the cbp_driver_tiers column.', record.getMessage())
 
 if __name__ == '__main__':
     unittest.main(buffer=True)

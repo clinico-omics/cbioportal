@@ -13,6 +13,7 @@ import org.cbioportal.model.ClinicalAttributeCount;
 import org.cbioportal.service.ClinicalAttributeService;
 import org.cbioportal.service.exception.ClinicalAttributeNotFoundException;
 import org.cbioportal.service.exception.StudyNotFoundException;
+import org.cbioportal.web.config.PublicApiTags;
 import org.cbioportal.web.config.annotation.PublicApi;
 import org.cbioportal.web.parameter.ClinicalAttributeCountFilter;
 import org.cbioportal.web.parameter.Direction;
@@ -40,7 +41,7 @@ import springfox.documentation.annotations.ApiIgnore;
 @PublicApi
 @RestController
 @Validated
-@Api(tags = "F. Clinical Attributes", description = " ")
+@Api(tags = PublicApiTags.CLINICAL_ATTRIBUTES, description = " ")
 public class ClinicalAttributeController {
 
     @Autowired
@@ -118,7 +119,7 @@ public class ClinicalAttributeController {
             @ApiParam(required = true, value = "Study ID e.g. acc_tcga")
             @PathVariable String studyId,
             @ApiParam(required = true, value= "Clinical Attribute ID e.g. CANCER_TYPE")
-            @PathVariable String clinicalAttributeId) 
+            @PathVariable String clinicalAttributeId)
         throws ClinicalAttributeNotFoundException, StudyNotFoundException {
 
         return new ResponseEntity<>(clinicalAttributeService.getClinicalAttribute(studyId, clinicalAttributeId),
@@ -126,7 +127,7 @@ public class ClinicalAttributeController {
     }
 
     @PreAuthorize("hasPermission(#studyIds, 'Collection<CancerStudyId>', 'read')")
-    @RequestMapping(value = "/clinical-attributes/fetch", method = RequestMethod.POST, 
+    @RequestMapping(value = "/clinical-attributes/fetch", method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ApiOperation("Fetch clinical attributes")
     public ResponseEntity<List<ClinicalAttribute>> fetchClinicalAttributes(
@@ -142,38 +143,9 @@ public class ClinicalAttributeController {
                 studyIds).getTotalCount().toString());
             return new ResponseEntity<>(responseHeaders, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(clinicalAttributeService.fetchClinicalAttributes(studyIds, projection.name()), 
+            return new ResponseEntity<>(clinicalAttributeService.fetchClinicalAttributes(studyIds, projection.name()),
                 HttpStatus.OK);
         }
     }
 
-    @PreAuthorize("hasPermission(#involvedCancerStudies, 'Collection<CancerStudyId>', 'read')")
-    @RequestMapping(value = "/clinical-attributes/counts/fetch", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE,
-                    produces = MediaType.APPLICATION_JSON_VALUE)
-    @ApiOperation("Get counts for clinical attributes according to their data availability for selected samples/patients")
-    public ResponseEntity<List<ClinicalAttributeCount>> getClinicalAttributeCounts(
-        @ApiIgnore // prevent reference to this attribute in the swagger-ui interface
-        @RequestAttribute(required = false, value = "involvedCancerStudies") Collection<String> involvedCancerStudies,
-        @ApiIgnore // prevent reference to this attribute in the swagger-ui interface. this attribute is needed for the @PreAuthorize tag above.
-        @Valid @RequestAttribute(required = false, value = "interceptedClinicalAttributeCountFilter") ClinicalAttributeCountFilter interceptedClinicalAttributeCountFilter,
-            @ApiParam(required = true, value = "List of SampleIdentifiers or Sample List ID")
-            @Valid @RequestBody(required = false) ClinicalAttributeCountFilter clinicalAttributeCountFilter) {
-
-        List<ClinicalAttributeCount> clinicalAttributeCountList;
-        if (interceptedClinicalAttributeCountFilter.getSampleListId() != null) {
-            clinicalAttributeCountList = clinicalAttributeService.getClinicalAttributeCountsBySampleListId(
-                interceptedClinicalAttributeCountFilter.getSampleListId());
-        } else {
-            List<SampleIdentifier> sampleIdentifiers = interceptedClinicalAttributeCountFilter.getSampleIdentifiers();
-            List<String> studyIds = new ArrayList<>();
-            List<String> sampleIds = new ArrayList<>();
-            for (SampleIdentifier sampleIdentifier : sampleIdentifiers) {
-                studyIds.add(sampleIdentifier.getStudyId());
-                sampleIds.add(sampleIdentifier.getSampleId());
-            }
-            clinicalAttributeCountList = clinicalAttributeService.getClinicalAttributeCountsBySampleIds(studyIds, sampleIds);
-        }
-
-        return new ResponseEntity<>(clinicalAttributeCountList, HttpStatus.OK);
-    }
 }

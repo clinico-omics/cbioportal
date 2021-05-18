@@ -59,7 +59,7 @@ public class CosmicCountControllerTest {
         Mockito.reset(cosmicCountService);
         mockMvc = MockMvcBuilders.webAppContextSetup(wac).build();
     }
-    
+
     @Test
     public void fetchCosmicCounts() throws Exception {
 
@@ -77,7 +77,7 @@ public class CosmicCountControllerTest {
         cosmicMutation2.setCount(TEST_COUNT_2);
         cosmicMutationList.add(cosmicMutation2);
 
-        Mockito.when(cosmicCountService.fetchCosmicCountsByKeywords(Mockito.anyListOf(String.class)))
+        Mockito.when(cosmicCountService.fetchCosmicCountsByKeywords(Mockito.anyList()))
             .thenReturn(cosmicMutationList);
 
         List<String> keywords = new ArrayList<>();

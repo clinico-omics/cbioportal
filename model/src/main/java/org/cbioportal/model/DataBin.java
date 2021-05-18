@@ -1,32 +1,14 @@
 package org.cbioportal.model;
 
 import java.io.Serializable;
-import org.cbioportal.model.ClinicalDataCountItem.ClinicalDataType;
+import java.math.BigDecimal;
 
 public class DataBin implements Serializable {
 
-    private String attributeId;
-    private ClinicalDataType clinicalDataType;
     private String specialValue;
-    private Double start;
-    private Double end;
+    private BigDecimal start;
+    private BigDecimal end;
     private Integer count;
-
-    public String getAttributeId() {
-		return attributeId;
-	}
-
-	public void setAttributeId(String attributeId) {
-		this.attributeId = attributeId;
-	}
-
-    public ClinicalDataType getClinicalDataType() {
-        return clinicalDataType;
-    }
-
-    public void setClinicalDataType(ClinicalDataType clinicalDataType) {
-        this.clinicalDataType = clinicalDataType;
-    }
 
     public String getSpecialValue() {
         return specialValue;
@@ -36,19 +18,19 @@ public class DataBin implements Serializable {
         this.specialValue = specialValue;
     }
 
-    public Double getStart() {
+    public BigDecimal getStart() {
         return start;
     }
 
-    public void setStart(Double start) {
+    public void setStart(BigDecimal start) {
         this.start = start;
     }
 
-    public Double getEnd() {
+    public BigDecimal getEnd() {
         return end;
     }
 
-    public void setEnd(Double end) {
+    public void setEnd(BigDecimal end) {
         this.end = end;
     }
 

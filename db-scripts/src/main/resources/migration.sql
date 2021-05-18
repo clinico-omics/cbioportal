@@ -1,5 +1,5 @@
 --
--- Copyright (c) 2016 - 2019 Memorial Sloan-Kettering Cancer Center.
+-- Copyright (c) 2016 - 2020 Memorial Sloan-Kettering Cancer Center.
 --
 -- This library is distributed in the hope that it will be useful, but WITHOUT
 -- ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS
@@ -397,11 +397,11 @@ CREATE TABLE `reference_genome` (
 );
 
 INSERT INTO `reference_genome`
-VALUES (1, 'human', 'hg19', 'GRCh37', NULL, 'http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips', '2009-02-01');
+VALUES (1, 'human', 'hg19', 'GRCh37', 2897310462, 'http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips', '2009-02-01');
 INSERT INTO `reference_genome`
-VALUES (2, 'human', 'hg38', 'GRCh38', NULL, 'http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips', '2013-12-01');
+VALUES (2, 'human', 'hg38', 'GRCh38', 3049315783, 'http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips', '2013-12-01');
 INSERT INTO `reference_genome`
-VALUES (3, 'mouse', 'mm10', 'GRCm38', NULL, 'http://hgdownload.cse.ucsc.edu//goldenPath/mm10/bigZips', '2012-01-01');
+VALUES (3, 'mouse', 'mm10', 'GRCm38', 2652783500, 'http://hgdownload.cse.ucsc.edu//goldenPath/mm10/bigZips', '2012-01-01');
 
 CREATE TABLE `reference_genome_gene` (
     `ENTREZ_GENE_ID` int(11) NOT NULL,
@@ -605,3 +605,334 @@ CREATE TABLE `data_access_tokens` (
     FOREIGN KEY (`USERNAME`) REFERENCES `users` (`EMAIL`) ON DELETE CASCADE
 );
 UPDATE `info` SET `DB_SCHEMA_VERSION`="2.9.0";
+
+-- ========================== new treatment related tables =============================================
+##version: 2.9.1
+CREATE TABLE `treatment` (
+  `ID` INT(11) NOT NULL auto_increment,
+  `STABLE_ID` VARCHAR(45) NOT NULL UNIQUE,
+  `NAME` VARCHAR(45) NOT NULL,
+  `DESCRIPTION` VARCHAR(200) NOT NULL,
+  `LINKOUT_URL` VARCHAR(400) NOT NULL,
+  `GENETIC_ENTITY_ID` INT NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE INDEX `TREATMENT_GENETIC_ENTITY_ID_UNIQUE` (`GENETIC_ENTITY_ID` ASC),
+  FOREIGN KEY (`GENETIC_ENTITY_ID`) REFERENCES `genetic_entity` (`ID`) ON DELETE CASCADE
+);
+
+-- --------------------------------------------------------
+ALTER TABLE `genetic_profile` ADD COLUMN `PIVOT_THRESHOLD` FLOAT DEFAULT NULL;
+ALTER TABLE `genetic_profile` ADD COLUMN `SORT_ORDER` ENUM('ASC','DESC') DEFAULT NULL;
+
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.9.1";
+
+-- ========================== end of treatment related tables =============================================
+##version: 2.9.2
+-- Previous structural_variant was never used, so recreate it
+DROP TABLE IF EXISTS structural_variant;
+CREATE TABLE `structural_variant` (
+  `INTERNAL_ID` int(11) NOT NULL auto_increment,
+  `GENETIC_PROFILE_ID` int(11) NOT NULL,
+  `SAMPLE_ID` int(11) NOT NULL,
+  `SITE1_ENTREZ_GENE_ID` int(11) NOT NULL,
+  `SITE1_ENSEMBL_TRANSCRIPT_ID` varchar(25),
+  `SITE1_EXON` int(4),
+  `SITE1_CHROMOSOME` varchar(5),
+  `SITE1_POSITION` int(11),
+  `SITE1_DESCRIPTION` varchar(255),
+  `SITE2_ENTREZ_GENE_ID` int(11),
+  `SITE2_ENSEMBL_TRANSCRIPT_ID` varchar(25),
+  `SITE2_EXON` int(4),
+  `SITE2_CHROMOSOME` varchar(5),
+  `SITE2_POSITION` int(11),
+  `SITE2_DESCRIPTION` varchar(255),
+  `SITE2_EFFECT_ON_FRAME` varchar(25),
+  `NCBI_BUILD` varchar(10),
+  `DNA_SUPPORT` varchar(3),
+  `RNA_SUPPORT` varchar(3),
+  `NORMAL_READ_COUNT` int(11),
+  `TUMOR_READ_COUNT` int(11),
+  `NORMAL_VARIANT_COUNT` int(11),
+  `TUMOR_VARIANT_COUNT` int(11),
+  `NORMAL_PAIRED_END_READ_COUNT` int(11),
+  `TUMOR_PAIRED_END_READ_COUNT` int(11),
+  `NORMAL_SPLIT_READ_COUNT` int(11),
+  `TUMOR_SPLIT_READ_COUNT` int(11),
+  `ANNOTATION` varchar(255),
+  `BREAKPOINT_TYPE` varchar(25),
+  `CENTER` varchar(25),
+  `CONNECTION_TYPE` varchar(25),
+  `EVENT_INFO` varchar(255),
+  `CLASS` varchar(25),
+  `LENGTH` int(11),
+  `COMMENTS` varchar(255),
+  `EXTERNAL_ANNOTATION` varchar(80),
+  `DRIVER_FILTER` VARCHAR(20),
+  `DRIVER_FILTER_ANNOTATION` VARCHAR(80),
+  `DRIVER_TIERS_FILTER` VARCHAR(50),
+  `DRIVER_TIERS_FILTER_ANNOTATION` VARCHAR(80),
+  PRIMARY KEY (`INTERNAL_ID`),
+  FOREIGN KEY (`SAMPLE_ID`) REFERENCES `sample` (`INTERNAL_ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`SITE1_ENTREZ_GENE_ID`) REFERENCES `gene` (`ENTREZ_GENE_ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`SITE2_ENTREZ_GENE_ID`) REFERENCES `gene` (`ENTREZ_GENE_ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`GENETIC_PROFILE_ID`) REFERENCES `genetic_profile` (`GENETIC_PROFILE_ID`) ON DELETE CASCADE
+);
+
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.9.2";
+
+##version: 2.10.0
+-- remove gene length, this is stored in genome nexus
+ALTER TABLE `gene` DROP COLUMN `length`;
+
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.10.0";
+
+##version: 2.10.1
+ALTER TABLE `copy_number_seg` MODIFY COLUMN `SEG_ID` BIGINT(20);
+
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.10.1";
+
+##version: 2.11.0
+UPDATE `reference_genome` SET `GENOME_SIZE` = 2897310462 WHERE `NAME`='hg19';
+UPDATE `reference_genome` SET `GENOME_SIZE` = 3049315783 WHERE `NAME`='hg38';
+UPDATE `reference_genome` SET `GENOME_SIZE` = 2652783500 WHERE `NAME`='mm10';
+ALTER TABLE `reference_genome_gene` MODIFY COLUMN `CHR` varchar(5);
+INSERT INTO reference_genome_gene (ENTREZ_GENE_ID, CYTOBAND, EXONIC_LENGTH, CHR, REFERENCE_GENOME_ID)
+SELECT
+    ENTREZ_GENE_ID,
+    CYTOBAND,
+    0,
+    SUBSTRING_INDEX(SUBSTRING_INDEX(SUBSTRING_INDEX(gene.CYTOBAND,IF(LOCATE('p', gene.CYTOBAND), 'p', 'q'), 1),'q',1),'cen',1),
+    1
+FROM `gene`
+WHERE NOT EXISTS (SELECT * FROM reference_genome_gene);
+ALTER TABLE `gene` DROP COLUMN `CYTOBAND`;
+ALTER TABLE `cancer_study` ADD COLUMN `REFERENCE_GENOME_ID` INT(4) DEFAULT 1,
+                           ADD CONSTRAINT `FK_REFERENCE_GENOME` FOREIGN KEY (`REFERENCE_GENOME_ID`)
+                               REFERENCES `reference_genome`(`REFERENCE_GENOME_ID`) ON DELETE RESTRICT;
+UPDATE `cancer_study`
+    INNER JOIN `genetic_profile` ON `cancer_study`.CANCER_STUDY_ID = `genetic_profile`.CANCER_STUDY_ID
+    INNER JOIN `mutation` ON `mutation`.GENETIC_PROFILE_ID = `genetic_profile`.GENETIC_PROFILE_ID
+    INNER JOIN `mutation_event` ON `mutation`.MUTATION_EVENT_ID = `mutation_event`.MUTATION_EVENT_ID
+SET `cancer_study`.REFERENCE_GENOME_ID =
+CASE
+    WHEN `mutation_event`.NCBI_BUILD in ('mm10', 'GRCm38') THEN 3
+    WHEN `mutation_event`.NCBI_BUILD in ('38', 'hg38', 'GRCh38') THEN 2
+    ELSE 1
+END;
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.11.0";
+
+##version: 2.12.0
+ALTER TABLE `mutation` ADD COLUMN ANNOTATION_JSON JSON DEFAULT NULL;
+-- ========================== new ascn table =============================================
+CREATE TABLE `allele_specific_copy_number` (
+    `MUTATION_EVENT_ID` int(255) NOT NULL,
+    `GENETIC_PROFILE_ID` int(11) NOT NULL,
+    `SAMPLE_ID` int(11) NOT NULL,
+    `ASCN_INTEGER_COPY_NUMBER` int DEFAULT NULL,
+    `ASCN_METHOD` varchar(24) NOT NULL,
+    `CCF_M_COPIES_UPPER` float DEFAULT NULL,
+    `CCF_M_COPIES` float DEFAULT NULL,
+    `CLONAL` boolean DEFAULT NULL,
+    `MINOR_COPY_NUMBER` int DEFAULT NULL,
+    `MUTANT_COPIES` int DEFAULT NULL,
+    `TOTAL_COPY_NUMBER` int DEFAULT NULL,
+    UNIQUE KEY `UQ_ASCN_MUTATION_EVENT_ID_GENETIC_PROFILE_ID_SAMPLE_ID` (`MUTATION_EVENT_ID`,`GENETIC_PROFILE_ID`,`SAMPLE_ID`),
+    FOREIGN KEY (`MUTATION_EVENT_ID`) REFERENCES `mutation_event` (`MUTATION_EVENT_ID`),
+    FOREIGN KEY (`GENETIC_PROFILE_ID`) REFERENCES `genetic_profile` (`GENETIC_PROFILE_ID`) ON DELETE CASCADE,
+    FOREIGN KEY (`SAMPLE_ID`) REFERENCES `sample` (`INTERNAL_ID`) ON DELETE CASCADE
+);
+
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.0";
+-- ========================== end of ascn table =============================================
+##version: 2.12.1
+-- update genetic_entity table
+ALTER TABLE `genetic_entity` ADD COLUMN `STABLE_ID` varchar(45) DEFAULT NULL;
+ALTER TABLE `genetic_profile` ADD COLUMN `GENERIC_ASSAY_TYPE` varchar(255) DEFAULT NULL;
+ALTER TABLE `genetic_alteration` DROP FOREIGN KEY genetic_alteration_ibfk_2;
+ALTER TABLE `genetic_alteration` ADD CONSTRAINT `genetic_alteration_ibfk_2` FOREIGN KEY (`GENETIC_ENTITY_ID`) REFERENCES `genetic_entity` (`ID`) ON DELETE CASCADE;
+
+CREATE TABLE `generic_entity_properties` (
+  `ID` INT(11) NOT NULL auto_increment,
+  `GENETIC_ENTITY_ID` INT NOT NULL,
+  `NAME` varchar(255) NOT NULL,
+  `VALUE` varchar(5000) NOT NULL,
+  UNIQUE (`GENETIC_ENTITY_ID`, `NAME`),
+  PRIMARY KEY (`ID`),
+  FOREIGN KEY (`GENETIC_ENTITY_ID`) REFERENCES `genetic_entity` (`ID`) ON DELETE CASCADE
+);
+
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.1";
+
+##version: 2.12.2
+-- treatment to generic_assay migration
+-- insert NAME into generic_entity_properties
+INSERT INTO generic_entity_properties (GENETIC_ENTITY_ID, NAME, VALUE)
+SELECT
+    GENETIC_ENTITY_ID,
+    "NAME",
+    NAME
+FROM `treatment`;
+-- insert DESCRIPTION into generic_entity_properties
+INSERT INTO generic_entity_properties (GENETIC_ENTITY_ID, NAME, VALUE)
+SELECT
+    GENETIC_ENTITY_ID,
+    "DESCRIPTION",
+    DESCRIPTION
+FROM `treatment`;
+-- insert URL into generic_entity_properties
+INSERT INTO generic_entity_properties (GENETIC_ENTITY_ID, NAME, VALUE)
+SELECT
+    GENETIC_ENTITY_ID,
+    "URL",
+    LINKOUT_URL
+FROM `treatment`;
+-- update genetic_entity and genetic_profile
+UPDATE genetic_entity INNER JOIN treatment ON genetic_entity.ID = treatment.GENETIC_ENTITY_ID SET genetic_entity.STABLE_ID = treatment.STABLE_ID, genetic_entity.ENTITY_TYPE = "GENERIC_ASSAY";
+UPDATE genetic_profile SET GENERIC_ASSAY_TYPE = "TREATMENT_RESPONSE" WHERE genetic_profile.GENETIC_ALTERATION_TYPE = "GENERIC_ASSAY";
+-- drop treatment table
+DROP TABLE IF EXISTS `treatment`;
+
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.2";
+
+##version: 2.12.3
+CREATE TEMPORARY TABLE IF NOT EXISTS
+    fusion_studies ( INDEX(CANCER_STUDY_IDENTIFIER) )
+AS (
+    SELECT DISTINCT CANCER_STUDY_IDENTIFIER, cancer_study.CANCER_STUDY_ID
+    FROM `mutation_event`
+             JOIN `mutation` ON `mutation`.MUTATION_EVENT_ID = `mutation_event`.MUTATION_EVENT_ID
+             JOIN `genetic_profile` ON `genetic_profile`.GENETIC_PROFILE_ID = `mutation`.GENETIC_PROFILE_ID
+             JOIN `cancer_study` ON `cancer_study`.CANCER_STUDY_ID = `genetic_profile`.CANCER_STUDY_ID
+    WHERE MUTATION_TYPE = 'fusion'
+);
+INSERT INTO genetic_profile(STABLE_ID, CANCER_STUDY_ID, GENETIC_ALTERATION_TYPE, DATATYPE, NAME, DESCRIPTION, SHOW_PROFILE_IN_ANALYSIS_TAB)
+SELECT CONCAT(CANCER_STUDY_IDENTIFIER, '_fusion'), CANCER_STUDY_ID, 'STRUCTURAL_VARIANT','FUSION','Fusions','Fusions',0
+FROM `fusion_studies`
+WHERE NOT EXISTS (SELECT * FROM genetic_profile WHERE  STABLE_ID=CONCAT(`fusion_studies`.CANCER_STUDY_IDENTIFIER, '_fusion')
+    AND CANCER_STUDY_ID = `fusion_studies`.CANCER_STUDY_ID);
+DROP TEMPORARY TABLE fusion_studies;
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.3";
+
+##version: 2.12.4
+CREATE TABLE `resource_definition` (
+  `RESOURCE_ID` varchar(255) NOT NULL,
+  `DISPLAY_NAME` varchar(255) NOT NULL,
+  `DESCRIPTION` varchar(2048) DEFAULT NULL,
+  `RESOURCE_TYPE` ENUM('STUDY', 'PATIENT', 'SAMPLE') NOT NULL,
+  `OPEN_BY_DEFAULT` BOOLEAN DEFAULT 0,
+  `PRIORITY` int(11) NOT NULL,
+  `CANCER_STUDY_ID` int(11) NOT NULL,
+  PRIMARY KEY (`RESOURCE_ID`,`CANCER_STUDY_ID`),
+  FOREIGN KEY (`CANCER_STUDY_ID`) REFERENCES `cancer_study` (`CANCER_STUDY_ID`) ON DELETE CASCADE
+);
+
+CREATE TABLE `resource_sample` (
+  `INTERNAL_ID` int(11) NOT NULL,
+  `RESOURCE_ID` varchar(255) NOT NULL,
+  `URL` varchar(255) NOT NULL,
+  PRIMARY KEY (`INTERNAL_ID`, `RESOURCE_ID`, `URL`),
+  FOREIGN KEY (`INTERNAL_ID`) REFERENCES `sample` (`INTERNAL_ID`) ON DELETE CASCADE
+);
+
+CREATE TABLE `resource_patient` (
+  `INTERNAL_ID` int(11) NOT NULL,
+  `RESOURCE_ID` varchar(255) NOT NULL,
+  `URL` varchar(255) NOT NULL,
+  PRIMARY KEY (`INTERNAL_ID`, `RESOURCE_ID`, `URL`),
+  FOREIGN KEY (`INTERNAL_ID`) REFERENCES `patient` (`INTERNAL_ID`) ON DELETE CASCADE
+);
+
+CREATE TABLE `resource_study` (
+  `INTERNAL_ID` int(11) NOT NULL,
+  `RESOURCE_ID` varchar(255) NOT NULL,
+  `URL` varchar(255) NOT NULL,
+  PRIMARY KEY (`INTERNAL_ID`, `RESOURCE_ID`, `URL`),
+  FOREIGN KEY (`INTERNAL_ID`) REFERENCES `cancer_study` (`CANCER_STUDY_ID`) ON DELETE CASCADE
+);
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.4";
+
+##version: 2.12.5
+-- survival data migration
+-- create temporary table to store survival attributes
+CREATE TEMPORARY TABLE IF NOT EXISTS survival_attributes AS 
+  (SELECT DISTINCT Concat(Substr(ATTR_ID, 1, Char_length(ATTR_ID) - 7), 
+                   "_STATUS") AS ATTR_ID 
+   FROM   clinical_attribute_meta 
+   WHERE  ATTR_ID LIKE "%_STATUS" 
+          AND Substr(ATTR_ID, 1, Char_length(ATTR_ID) - 7)IN (SELECT DISTINCT 
+              Substr(ATTR_ID, 1, Char_length(ATTR_ID) - 7) AS 
+              SurvivalDataStatusPrefix 
+              FROM   clinical_attribute_meta 
+              WHERE  ATTR_ID LIKE "%_MONTHS")); 
+
+-- mapping to 0/1
+UPDATE clinical_patient SET ATTR_VALUE = CONCAT("1:",ATTR_VALUE) WHERE ATTR_ID in (SELECT ATTR_ID FROM survival_attributes) AND ATTR_VALUE in ('DECEASED','Recurred/Progressed','Recurred','Progressed','Yes','yes','1','PROGRESSION','Event','DEAD OF MELANOMA','DEAD WITH TUMOR','Metastatic Relapse','Localized Relapse');
+UPDATE clinical_patient SET ATTR_VALUE = CONCAT("0:",ATTR_VALUE) WHERE ATTR_ID in (SELECT ATTR_ID FROM survival_attributes) AND ATTR_VALUE in ('LIVING','ALIVE','DiseaseFree','No','0','ProgressionFree','NO PROGRESSION','Not Progressed','CENSORED','Censor','ALIVE OR CENSORED','ALIVE OR DEAD TUMOR FREE','Censored','No Relapse','Progression free','Censure','no','NED');
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.5";
+
+##version: 2.12.6
+-- WARNING: old allele specific copy number (ASCN) schema is incompatible with the new schema
+-- studies that contain ASCN data will lose any existing ASCN data and should be reimported
+DROP TABLE IF EXISTS `allele_specific_copy_number`;
+CREATE TABLE `allele_specific_copy_number` (
+    `MUTATION_EVENT_ID` int(255) NOT NULL,
+    `GENETIC_PROFILE_ID` int(11) NOT NULL,
+    `SAMPLE_ID` int(11) NOT NULL,
+    `ASCN_INTEGER_COPY_NUMBER` int DEFAULT NULL,
+    `ASCN_METHOD` varchar(24) NOT NULL,
+    `CCF_EXPECTED_COPIES_UPPER` float DEFAULT NULL,
+    `CCF_EXPECTED_COPIES` float DEFAULT NULL,
+    `CLONAL` varchar(16) DEFAULT NULL,
+    `MINOR_COPY_NUMBER` int DEFAULT NULL,
+    `EXPECTED_ALT_COPIES` int DEFAULT NULL,
+    `TOTAL_COPY_NUMBER` int DEFAULT NULL,
+    UNIQUE KEY `UQ_ASCN_MUTATION_EVENT_ID_GENETIC_PROFILE_ID_SAMPLE_ID` (`MUTATION_EVENT_ID`,`GENETIC_PROFILE_ID`,`SAMPLE_ID`), -- Constraint to block duplicated mutation entries
+    FOREIGN KEY (`MUTATION_EVENT_ID`) REFERENCES `mutation_event` (`MUTATION_EVENT_ID`),
+    FOREIGN KEY (`GENETIC_PROFILE_ID`) REFERENCES `genetic_profile` (`GENETIC_PROFILE_ID`) ON DELETE CASCADE,
+    FOREIGN KEY (`SAMPLE_ID`) REFERENCES `sample` (`INTERNAL_ID`) ON DELETE CASCADE
+);
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.6";
+
+##version: 2.12.7
+CREATE TABLE `alteration_driver_annotation` (
+  `ALTERATION_EVENT_ID` int(255) NOT NULL,
+  `GENETIC_PROFILE_ID` int(11) NOT NULL,
+  `SAMPLE_ID` int(11) NOT NULL,
+  `DRIVER_FILTER` VARCHAR(20),
+  `DRIVER_FILTER_ANNOTATION` VARCHAR(80),
+  `DRIVER_TIERS_FILTER` VARCHAR(50),
+  `DRIVER_TIERS_FILTER_ANNOTATION` VARCHAR(80),
+  PRIMARY KEY (`ALTERATION_EVENT_ID`, `GENETIC_PROFILE_ID`, `SAMPLE_ID`),
+  FOREIGN KEY (`GENETIC_PROFILE_ID`) REFERENCES `genetic_profile` (`GENETIC_PROFILE_ID`) ON DELETE CASCADE,
+  FOREIGN KEY (`SAMPLE_ID`) REFERENCES `sample` (`INTERNAL_ID`) ON DELETE CASCADE
+) COMMENT='Alteration driver annotation';
+insert into `alteration_driver_annotation`
+select `INTERNAL_ID`, `GENETIC_PROFILE_ID`, `SAMPLE_ID`, `DRIVER_FILTER`, `DRIVER_FILTER_ANNOTATION`, `DRIVER_TIERS_FILTER`, `DRIVER_TIERS_FILTER_ANNOTATION` from `structural_variant`
+where `DRIVER_FILTER` is not null and `DRIVER_FILTER` != 'NA' and `DRIVER_FILTER` != ''
+or `DRIVER_FILTER_ANNOTATION` is not null and `DRIVER_FILTER_ANNOTATION` != 'NA' and `DRIVER_FILTER_ANNOTATION` != ''
+or `DRIVER_TIERS_FILTER` is not null and `DRIVER_TIERS_FILTER` != 'NA' and `DRIVER_TIERS_FILTER` != ''
+or `DRIVER_TIERS_FILTER_ANNOTATION` is not null and `DRIVER_TIERS_FILTER_ANNOTATION` != 'NA' and `DRIVER_TIERS_FILTER_ANNOTATION` != '';
+alter table `structural_variant`
+drop column `DRIVER_FILTER`,
+drop column `DRIVER_FILTER_ANNOTATION`,
+drop column `DRIVER_TIERS_FILTER`,
+drop column `DRIVER_TIERS_FILTER_ANNOTATION`;
+insert into `alteration_driver_annotation`
+select `MUTATION_EVENT_ID`, `GENETIC_PROFILE_ID`, `SAMPLE_ID`, `DRIVER_FILTER`, `DRIVER_FILTER_ANNOTATION`, `DRIVER_TIERS_FILTER`, `DRIVER_TIERS_FILTER_ANNOTATION` from `mutation`
+where `DRIVER_FILTER` is not null and `DRIVER_FILTER` != 'NA' and `DRIVER_FILTER` != ''
+or `DRIVER_FILTER_ANNOTATION` is not null and `DRIVER_FILTER_ANNOTATION` != 'NA' and `DRIVER_FILTER_ANNOTATION` != ''
+or `DRIVER_TIERS_FILTER` is not null and `DRIVER_TIERS_FILTER` != 'NA' and `DRIVER_TIERS_FILTER` != ''
+or `DRIVER_TIERS_FILTER_ANNOTATION` is not null and `DRIVER_TIERS_FILTER_ANNOTATION` != 'NA' and `DRIVER_TIERS_FILTER_ANNOTATION` != '';
+alter table `mutation`
+drop column `DRIVER_FILTER`,
+drop column `DRIVER_FILTER_ANNOTATION`,
+drop column `DRIVER_TIERS_FILTER`,
+drop column `DRIVER_TIERS_FILTER_ANNOTATION`;
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.7";
+
+##version: 2.12.8
+CREATE INDEX idx_mutation_type ON mutation_event (`MUTATION_TYPE`);
+CREATE INDEX idx_cna_type ON cna_event (`ALTERATION`);                                                        
+CREATE INDEX idx_driver_filter ON alteration_driver_annotation (`DRIVER_FILTER`);
+CREATE INDEX idx_driver_tiers_filter ON alteration_driver_annotation (`DRIVER_TIERS_FILTER`);
+UPDATE `info` SET `DB_SCHEMA_VERSION`="2.12.8";

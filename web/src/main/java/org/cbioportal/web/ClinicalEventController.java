@@ -7,7 +7,8 @@ import org.cbioportal.model.ClinicalEvent;
 import org.cbioportal.service.ClinicalEventService;
 import org.cbioportal.service.exception.PatientNotFoundException;
 import org.cbioportal.service.exception.StudyNotFoundException;
-import org.cbioportal.web.config.annotation.PublicApi;
+import org.cbioportal.web.config.InternalApiTags;
+import org.cbioportal.web.config.annotation.InternalApi;
 import org.cbioportal.web.parameter.Direction;
 import org.cbioportal.web.parameter.HeaderKeyConstants;
 import org.cbioportal.web.parameter.PagingConstants;
@@ -30,10 +31,10 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import java.util.List;
 
-@PublicApi
+@InternalApi
 @RestController
 @Validated
-@Api(tags = "H. Clinical Events", description = " ")
+@Api(tags = InternalApiTags.CLINICAL_EVENTS, description = " ")
 public class ClinicalEventController {
 
     @Autowired
@@ -60,7 +61,7 @@ public class ClinicalEventController {
         @ApiParam("Name of the property that the result list is sorted by")
         @RequestParam(required = false) ClinicalEventSortBy sortBy,
         @ApiParam("Direction of the sort")
-        @RequestParam(defaultValue = "ASC") Direction direction) throws PatientNotFoundException, 
+        @RequestParam(defaultValue = "ASC") Direction direction) throws PatientNotFoundException,
         StudyNotFoundException {
 
         if (projection == Projection.META) {
@@ -95,7 +96,7 @@ public class ClinicalEventController {
         @ApiParam("Name of the property that the result list is sorted by")
         @RequestParam(required = false) ClinicalEventSortBy sortBy,
         @ApiParam("Direction of the sort")
-        @RequestParam(defaultValue = "ASC") Direction direction) throws PatientNotFoundException, 
+        @RequestParam(defaultValue = "ASC") Direction direction) throws PatientNotFoundException,
         StudyNotFoundException {
 
         if (projection == Projection.META) {

@@ -35,18 +35,20 @@ package org.mskcc.cbio.portal.util;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mskcc.cbio.portal.dao.DaoCancerStudy;
+import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoGeneticProfile;
 import org.mskcc.cbio.portal.model.CancerStudy;
 import org.mskcc.cbio.portal.model.GeneticAlterationType;
 import org.mskcc.cbio.portal.model.GeneticProfile;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -54,16 +56,16 @@ import java.util.ArrayList;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/applicationContext-dao.xml" })
-@TransactionConfiguration(transactionManager = "transactionManager", defaultRollback = true)
+@Rollback
 @Transactional
 public class TestGeneticProfileReader {
 
-	@Test
+    @Test
     public void testGeneticProfileReader() throws Exception {
         // load cancers
-		// TBD: change this to use getResourceAsStream()
-		// TBD: change this to use getResourceAsStream()
-		
+        // TBD: change this to use getResourceAsStream()
+        // TBD: change this to use getResourceAsStream()
+
         File file = new File("target/test-classes/genetic_profile_test.txt");
         GeneticProfile geneticProfile = GeneticProfileReader.loadGeneticProfile(file);
         assertEquals("Barry", geneticProfile.getTargetLine());
@@ -79,4 +81,17 @@ public class TestGeneticProfileReader {
         assertEquals(GeneticAlterationType.COPY_NUMBER_ALTERATION,
                 geneticProfile.getGeneticAlterationType());
     }
+
+    @Test(expected = RuntimeException.class)
+    public void testTreatmentResponseMissingPivotField() throws IOException, DaoException {
+        File file = new File("target/test-classes/test_meta_treatment_missing_pivot.txt");
+        GeneticProfileReader.loadGeneticProfile(file);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testTreatmentResponseMissingSortOrderField() throws IOException, DaoException {
+        File file = new File("target/test-classes/test_meta_treatment_missing_sortorder.txt");
+        GeneticProfileReader.loadGeneticProfile(file);
+    }
+
 }

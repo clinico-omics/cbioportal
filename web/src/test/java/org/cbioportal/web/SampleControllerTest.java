@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -67,8 +68,8 @@ public class SampleControllerTest {
 
         List<Sample> sampleList = createExampleSamples();
 
-        Mockito.when(sampleService.getAllSamplesInStudy(Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(),
-            Mockito.anyInt(), Mockito.anyString(), Mockito.anyString())).thenReturn(sampleList);
+        Mockito.when(sampleService.getAllSamplesInStudy(Mockito.any(), Mockito.any(), Mockito.any(),
+            Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(sampleList);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/studies/test_study_id/samples")
             .accept(MediaType.APPLICATION_JSON))
@@ -121,6 +122,39 @@ public class SampleControllerTest {
     }
 
     @Test
+    public void getAllSamples() throws Exception {
+        List<Sample> samples = createExampleSamples();
+        
+        Mockito
+            .when(sampleService.getAllSamples(
+                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(),
+                Mockito.any(), Mockito.any(), Mockito.any()
+            )).thenReturn(samples);
+        
+        mockMvc.perform(
+            MockMvcRequestBuilders.get("/samples").accept(MediaType.APPLICATION_JSON))
+            .andExpect(MockMvcResultMatchers.status().isOk())
+            .andExpect(MockMvcResultMatchers.content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(MockMvcResultMatchers.jsonPath("$", Matchers.hasSize(2)))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[0].internalId").doesNotExist())
+            .andExpect(MockMvcResultMatchers.jsonPath("$[0].sampleId").value(TEST_STABLE_ID_1))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[0].patientId").value(TEST_PATIENT_STABLE_ID_1))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[0].patientStableId").doesNotExist())
+            .andExpect(MockMvcResultMatchers.jsonPath("$[0].sampleType")
+                .value(Sample.SampleType.PRIMARY_SOLID_TUMOR.getValue()))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[0].studyId").value(TEST_CANCER_STUDY_IDENTIFIER_1))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[0].patient").doesNotExist())
+            .andExpect(MockMvcResultMatchers.jsonPath("$[1].internalId").doesNotExist())
+            .andExpect(MockMvcResultMatchers.jsonPath("$[1].sampleId").value(TEST_STABLE_ID_2))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[1].patientId").value(TEST_PATIENT_STABLE_ID_2))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[1].patientStableId").doesNotExist())
+            .andExpect(MockMvcResultMatchers.jsonPath("$[1].sampleType")
+                .value(Sample.SampleType.PRIMARY_SOLID_TUMOR.getValue()))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[1].studyId").value(TEST_CANCER_STUDY_IDENTIFIER_1))
+            .andExpect(MockMvcResultMatchers.jsonPath("$[1].patient").doesNotExist());
+    }
+
+    @Test
     public void getSampleInStudy() throws Exception {
 
         Sample sample = new Sample();
@@ -152,8 +186,8 @@ public class SampleControllerTest {
 
         List<Sample> sampleList = createExampleSamples();
 
-        Mockito.when(sampleService.getAllSamplesOfPatientInStudy(Mockito.anyString(), Mockito.anyString(),
-            Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+        Mockito.when(sampleService.getAllSamplesOfPatientInStudy(Mockito.any(), Mockito.any(),
+            Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
             .thenReturn(sampleList);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/studies/test_study_id/patients/test_patient_id/samples")
@@ -199,7 +233,7 @@ public class SampleControllerTest {
 
         List<Sample> sampleList = createExampleSamples();
 
-        Mockito.when(sampleService.fetchSamples(Mockito.anyListOf(String.class), Mockito.anyListOf(String.class),
+        Mockito.when(sampleService.fetchSamples(Mockito.anyList(), Mockito.anyList(),
             Mockito.anyString())).thenReturn(sampleList);
 
         SampleFilter sampleFilter = new SampleFilter();
@@ -244,7 +278,7 @@ public class SampleControllerTest {
 
         List<Sample> sampleList = createExampleSamples();
 
-        Mockito.when(sampleService.fetchSamples(Mockito.anyListOf(String.class), Mockito.anyListOf(String.class),
+        Mockito.when(sampleService.fetchSamples(Mockito.anyList(), Mockito.anyList(),
             Mockito.anyString())).thenReturn(sampleList);
 
         SampleFilter sampleFilter = new SampleFilter();
@@ -284,8 +318,8 @@ public class SampleControllerTest {
         BaseMeta baseMeta = new BaseMeta();
         baseMeta.setTotalCount(2);
 
-        Mockito.when(sampleService.fetchMetaSamples(Mockito.anyListOf(String.class),
-            Mockito.anyListOf(String.class))).thenReturn(baseMeta);
+        Mockito.when(sampleService.fetchMetaSamples(Mockito.anyList(),
+            Mockito.anyList())).thenReturn(baseMeta);
 
         SampleFilter sampleFilter = new SampleFilter();
         List<SampleIdentifier> sampleIdentifiers = new ArrayList<>();

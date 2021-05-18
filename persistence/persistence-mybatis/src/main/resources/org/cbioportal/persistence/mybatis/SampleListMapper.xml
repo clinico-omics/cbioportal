@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.cbioportal.persistence.mybatis.SampleListMapper">
-    <cache readOnly="true"/>
+    
 
     <sql id="select">
         sample_list.LIST_ID AS "${prefix}listId",
@@ -30,9 +30,19 @@
         </include>
         FROM sample_list
         INNER JOIN cancer_study ON sample_list.CANCER_STUDY_ID = cancer_study.CANCER_STUDY_ID
-        <if test="studyId != null">
-            WHERE cancer_study.CANCER_STUDY_IDENTIFIER = #{studyId}
-        </if>
+        INNER JOIN reference_genome ON cancer_study.REFERENCE_GENOME_ID = reference_genome.REFERENCE_GENOME_ID
+        <if test="studyIds != null">
+            <if test="studyIds.isEmpty()">
+                WHERE FALSE
+            </if>
+            <if test="!studyIds.isEmpty()">
+                WHERE cancer_study.CANCER_STUDY_IDENTIFIER IN
+                <foreach item="item" collection="studyIds" open="("
+                         separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+		</if>
         <if test="sortBy != null and projection != 'ID'">
             ORDER BY ${sortBy} ${direction}
         </if>
@@ -61,6 +71,7 @@
         </include>
         FROM sample_list
         INNER JOIN cancer_study ON sample_list.CANCER_STUDY_ID = cancer_study.CANCER_STUDY_ID
+        INNER JOIN reference_genome ON cancer_study.REFERENCE_GENOME_ID = reference_genome.REFERENCE_GENOME_ID
         WHERE sample_list.STABLE_ID = #{sampleListId}
     </select>
 
@@ -71,6 +82,7 @@
         </include>
         FROM sample_list
         INNER JOIN cancer_study ON sample_list.CANCER_STUDY_ID = cancer_study.CANCER_STUDY_ID
+        INNER JOIN reference_genome ON cancer_study.REFERENCE_GENOME_ID = reference_genome.REFERENCE_GENOME_ID
         <where>
             <if test="sampleListIds != null and !sampleListIds.isEmpty()">
                 sample_list.STABLE_ID IN

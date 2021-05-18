@@ -35,25 +35,27 @@ package org.mskcc.cbio.portal.model;
 import org.mskcc.cbio.portal.dao.DaoException;
 import org.mskcc.cbio.portal.dao.DaoSangerCensus;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.io.Serializable;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Class to wrap Entrez Gene ID, HUGO Gene Symbols,etc.
  */
-public class CanonicalGene extends Gene {
+public class CanonicalGene extends Gene implements Serializable {
     public static final String MIRNA_TYPE = "miRNA";
     public static final String PHOSPHOPROTEIN_TYPE = "phosphoprotein";
     private int geneticEntityId;
+    @JsonProperty("entrezGeneId")
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     private long entrezGeneId;
+    @JsonProperty("hugoGeneSymbol")
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     private String hugoGeneSymbol;
     private Set<String> aliases;
     private double somaticMutationFrequency;
-    private String cytoband;
-    private int length;
     private String type;
 
     /**
@@ -80,7 +82,7 @@ public class CanonicalGene extends Gene {
     public CanonicalGene(String hugoGeneSymbol, Set<String> aliases) {
         this(-1, -1, hugoGeneSymbol, aliases);
     }
-    
+
     /** 
      * This constructor can be used when geneticEntityId is not yet known, 
      * e.g. in case of a new gene (like when adding new genes in ImportGeneData), or is
@@ -105,7 +107,7 @@ public class CanonicalGene extends Gene {
     public CanonicalGene(long entrezGeneId, String hugoGeneSymbol, Set<String> aliases) {
     	this(-1, entrezGeneId, hugoGeneSymbol, aliases);
     }
-    
+
     public CanonicalGene(int geneticEntityId, long entrezGeneId, String hugoGeneSymbol, Set<String> aliases) {
    		this.geneticEntityId = geneticEntityId;
     	this.entrezGeneId = entrezGeneId;
@@ -113,6 +115,8 @@ public class CanonicalGene extends Gene {
         setAliases(aliases);
     }
 
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public String getType() {
         return type;
     }
@@ -121,26 +125,8 @@ public class CanonicalGene extends Gene {
         this.type = type;
     }
 
-    /**
-     * 
-     * @return gene length; 0 if no available
-     */
-    public int getLength() {
-        return length;
-    }
-
-    public void setLength(int length) {
-        this.length = length;
-    }
-
-    public String getCytoband() {
-        return cytoband;
-    }
-
-    public void setCytoband(String cytoband) {
-        this.cytoband = cytoband;
-    }
-
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public Set<String> getAliases() {
         if (aliases==null) {
             return Collections.emptySet();
@@ -153,19 +139,21 @@ public class CanonicalGene extends Gene {
             this.aliases = null;
             return;
         }
-        
+
         Map<String,String> map = new HashMap<String,String>(aliases.size());
         for (String alias : aliases) {
             map.put(alias.toUpperCase(), alias);
         }
-        
+
         this.aliases = new HashSet<String>(map.values());
     }
-    
+
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public int getGeneticEntityId() {
     	return geneticEntityId;
     }
-    
+
     public void setGeneticEntityId(int geneticEntityId) {
         this.geneticEntityId = geneticEntityId;
     }
@@ -178,10 +166,14 @@ public class CanonicalGene extends Gene {
         this.entrezGeneId = entrezGeneId;
     }
 
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public String getHugoGeneSymbolAllCaps() {
         return hugoGeneSymbol.toUpperCase();
     }
 
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public String getStandardSymbol() {
         return getHugoGeneSymbolAllCaps();
     }
@@ -189,11 +181,15 @@ public class CanonicalGene extends Gene {
     public void setHugoGeneSymbol(String hugoGeneSymbol) {
         this.hugoGeneSymbol = hugoGeneSymbol;
     }
-    
+
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public boolean isMicroRNA() {
         return MIRNA_TYPE.equals(type);
     }
-    
+
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public boolean isPhosphoProtein() {
         return PHOSPHOPROTEIN_TYPE.equals(type);
     }
@@ -208,7 +204,7 @@ public class CanonicalGene extends Gene {
         if (!(obj0 instanceof CanonicalGene)) {
             return false;
         }
-        
+
         CanonicalGene gene0 = (CanonicalGene) obj0;
         if (gene0.getEntrezGeneId() == entrezGeneId) {
             return true;
@@ -216,6 +212,8 @@ public class CanonicalGene extends Gene {
         return false;
     }
 
+    @JsonIgnore
+    // to preserve json output in DumpPortalInfo.java after migrating from ApiService
     public double getSomaticMutationFrequency() {
         return somaticMutationFrequency;
     }
@@ -224,6 +222,9 @@ public class CanonicalGene extends Gene {
         this.somaticMutationFrequency = somaticMutationFrequency;
     }
 
+    @JsonIgnore
+    // significant speedup to jackson json writing in
+    // DumpPortalInfo.java with this field ignored (not needed)
     public boolean isSangerGene() throws DaoException {
         DaoSangerCensus daoSangerCensus = DaoSangerCensus.getInstance();
 

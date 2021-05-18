@@ -5,3 +5,10 @@
 .classpath
 .DS_Store
 portal/target/portal
+.github
+target
+docs
+*/target/*
+docker
+# don't ignore entrypoint scripts
+!docker/web-and-data/docker-entrypoint.sh

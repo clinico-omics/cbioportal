@@ -47,9 +47,9 @@ import org.mskcc.cbio.portal.model.Sample;
 import org.mskcc.cbio.portal.util.SpringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -58,7 +58,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:/applicationContext-dao.xml" })
-@TransactionConfiguration(transactionManager = "transactionManager", defaultRollback = true)
+@Rollback
 @Transactional
 public class TestImportCopyNumberSegmentData {
 
@@ -87,7 +87,8 @@ public class TestImportCopyNumberSegmentData {
     public void testImportSegmentDataNewStudy() throws Exception {
 		//new dummy study to simulate importing clinical data in empty study:
 		CancerStudy cancerStudy = new CancerStudy("testnewseg","testnewseg","testnewseg","brca",true);
-        DaoCancerStudy.addCancerStudy(cancerStudy);
+        cancerStudy.setReferenceGenome("hg19");
+		DaoCancerStudy.addCancerStudy(cancerStudy);
         addTestPatientAndSampleRecords(new File("src/test/resources/segment/data_cna_hg19.seg"), cancerStudy);
 
         String[] args = {

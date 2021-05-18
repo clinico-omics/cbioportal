@@ -75,8 +75,8 @@ public class MolecularDataControllerTest {
 
         List<GeneMolecularData> geneMolecularDataList = createExampleMolecularData();
 
-        Mockito.when(molecularDataService.getMolecularData(Mockito.anyString(), 
-            Mockito.anyString(), Mockito.anyListOf(Integer.class), Mockito.anyString()))
+        Mockito.when(molecularDataService.getMolecularData(Mockito.anyString(),
+            Mockito.anyString(), Mockito.anyList(), Mockito.anyString()))
             .thenReturn(geneMolecularDataList);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/molecular-profiles/test_molecular_profile_id/molecular-data")
@@ -109,8 +109,8 @@ public class MolecularDataControllerTest {
         GeneMolecularData geneMolecularData2 = new GeneMolecularData();
         geneMolecularDataList.add(geneMolecularData2);
 
-        Mockito.when(molecularDataService.getMolecularData(Mockito.anyString(), Mockito.anyString(), 
-            Mockito.anyListOf(Integer.class), Mockito.anyString())).thenReturn(geneMolecularDataList);
+        Mockito.when(molecularDataService.getMolecularData(Mockito.anyString(), Mockito.anyString(),
+            Mockito.anyList(), Mockito.anyString())).thenReturn(geneMolecularDataList);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/molecular-profiles/test_molecular_profile_id/molecular-data")
             .param("sampleListId", TEST_SAMPLE_LIST_ID)
@@ -126,9 +126,9 @@ public class MolecularDataControllerTest {
         List<GeneMolecularData> geneMolecularDataList = createExampleMolecularData();
 
         Mockito.when(molecularDataService.fetchMolecularData(Mockito.anyString(),
-            Mockito.anyListOf(String.class), Mockito.anyListOf(Integer.class), Mockito.anyString()))
+            Mockito.anyList(), Mockito.anyList(), Mockito.anyString()))
             .thenReturn(geneMolecularDataList);
-        
+
         MolecularDataFilter molecularDataFilter = createMolecularDataFilter();
 
         mockMvc.perform(MockMvcRequestBuilders
@@ -162,8 +162,8 @@ public class MolecularDataControllerTest {
         GeneMolecularData geneMolecularData2 = new GeneMolecularData();
         geneMolecularDataList.add(geneMolecularData2);
 
-        Mockito.when(molecularDataService.fetchMolecularData(Mockito.anyString(), Mockito.anyListOf(String.class), 
-            Mockito.anyListOf(Integer.class), Mockito.anyString())).thenReturn(geneMolecularDataList);
+        Mockito.when(molecularDataService.fetchMolecularData(Mockito.anyString(), Mockito.anyList(),
+            Mockito.anyList(), Mockito.anyString())).thenReturn(geneMolecularDataList);
 
         MolecularDataFilter molecularDataFilter = createMolecularDataFilter();
 
@@ -181,15 +181,15 @@ public class MolecularDataControllerTest {
 
         List<GeneMolecularData> geneMolecularDataList = createExampleMolecularData();
 
-        Mockito.when(molecularDataService.getMolecularDataInMultipleMolecularProfiles(Mockito.anyListOf(String.class),
-            Mockito.anyListOf(String.class), Mockito.anyListOf(Integer.class), Mockito.anyString()))
+        Mockito.when(molecularDataService.getMolecularDataInMultipleMolecularProfiles(Mockito.any(),
+            Mockito.any(), Mockito.any(), Mockito.any()))
             .thenReturn(geneMolecularDataList);
-        
+
         MolecularDataMultipleStudyFilter molecularDataMultipleStudyFilter = new MolecularDataMultipleStudyFilter();
-        molecularDataMultipleStudyFilter.setMolecularProfileIds(Arrays.asList(TEST_MOLECULAR_PROFILE_STABLE_ID_1, 
+        molecularDataMultipleStudyFilter.setMolecularProfileIds(Arrays.asList(TEST_MOLECULAR_PROFILE_STABLE_ID_1,
             TEST_MOLECULAR_PROFILE_STABLE_ID_2));
         molecularDataMultipleStudyFilter.setEntrezGeneIds(Arrays.asList(TEST_ENTREZ_GENE_ID_1, TEST_ENTREZ_GENE_ID_2));
-        
+
         mockMvc.perform(MockMvcRequestBuilders
             .post("/molecular-data/fetch")
             .accept(MediaType.APPLICATION_JSON)
@@ -211,9 +211,9 @@ public class MolecularDataControllerTest {
             .andExpect(MockMvcResultMatchers.jsonPath("$[1].value").value(2.4))
             .andExpect(MockMvcResultMatchers.jsonPath("$[1].gene").doesNotExist());
     }
-    
+
     private List<GeneMolecularData> createExampleMolecularData() {
-        
+
         List<GeneMolecularData> geneMolecularDataList = new ArrayList<>();
         GeneMolecularData geneMolecularData1 = new GeneMolecularData();
         geneMolecularData1.setMolecularProfileId(TEST_MOLECULAR_PROFILE_STABLE_ID_1);
