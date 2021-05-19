@@ -12,3 +12,4 @@ docs
 docker
 # don't ignore entrypoint scripts
 !docker/web-and-data/docker-entrypoint.sh
+!portal/target/cbioportal.war

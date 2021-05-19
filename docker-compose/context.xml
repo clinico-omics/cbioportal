@@ -31,10 +31,10 @@
     <Resource name="jdbc/cbioportal" auth="Container"
     type="javax.sql.DataSource"
     maxActive="100" maxIdle="30" maxWait="10000"
-    username="root" password="{{MYSQL_ROOT_PASSWORD}}"
+    username="{{MYSQL_USER}}" password="{{MYSQL_PASSWORD}}"
     driverClassName="com.mysql.jdbc.Driver"
     connectionProperties="zeroDateTimeBehavior=convertToNull;"
     testOnBorrow="true"
     validationQuery="SELECT 1"
-    url="jdbc:mysql://cbioDB:3306/cbioportal"/>
+    url="jdbc:mysql://{{MYSQL_DB_HOST}}/{{MYSQL_DATABASE}}?useSSL=false"/>
 </Context>

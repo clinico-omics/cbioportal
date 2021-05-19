@@ -5,6 +5,8 @@ services:
     image: "mysql:5.7"
     expose:
       - "3306"
+    ports:
+      - "3306:3306"
     volumes:
       - ./my.cnf:/etc/my.cnf
       - ./data/mysql:/var/lib/mysql
@@ -28,7 +30,7 @@ services:
       - ./manager-context.xml:/usr/local/tomcat/webapps/manager/META-INF/context.xml:ro
       - ./setenv.sh:/usr/local/tomcat/bin/setenv.sh:ro
     ports:
-      - "80:8080"
-    links:
-      - cbioDB
+      - "8080:8080"
+    # links:
+      # - cbioDB
 
